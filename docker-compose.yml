@@ -1,0 +1,103 @@
+version: "3.9"
+
+services:
+  # ========================================
+  # BACKEND SERVICE (FastAPI)
+  # ========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - ./apps/api/.env
+    container_name: rag-api
+    ports:
+      - '8000:8000'
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:kwanso123@db:5432/rag-dd
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONPATH=/app/apps/api:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    working_dir: /app/apps/api
+    command: |
+      sh -c '
+        # alembic upgrade head &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 1 --timeout-keep-alive 120
+      '
+
+  # ========================================
+  # CELERY WORKER SERVICE
+  # ========================================
+  # celery-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: runtime
+  #   env_file:
+  #     - ./apps/api/.env
+  #   container_name: rag-celery-worker
+  #   volumes:
+  #     - .:/app
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:kwanso123@db:5432/rag-dd
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/0
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   working_dir: /app
+  #   command: |
+  #     sh -c '
+  #       celery -A celery_app.celery worker --loglevel=info --concurrency=2 --queues=document_processing --hostname=worker@%h --prefetch-multiplier=1
+  #     '
+
+  # ========================================
+  # REDIS SERVICE (Message Broker for Celery)
+  # ========================================
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ========================================
+  # DATABASE SERVICE (PostgreSQL with Vector Extension)
+  # ========================================
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: rag-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kwanso123
+      POSTGRES_DB: rag-dd
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
