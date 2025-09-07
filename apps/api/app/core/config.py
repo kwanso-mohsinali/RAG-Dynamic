@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     # External APIs
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    
+    # Model
+    MODEL: str = os.getenv("MODEL", "gpt-4o-mini")
 
     class Config:
         case_sensitive = True

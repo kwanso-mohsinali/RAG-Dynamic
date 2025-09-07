@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from services.vector_service import VectorService
 from config import settings
-from constants import RAG_SYSTEM_PROMPT
+from prompts.rag_prompts import RAG_SYSTEM_PROMPT
 
 
 class RAGChain:
