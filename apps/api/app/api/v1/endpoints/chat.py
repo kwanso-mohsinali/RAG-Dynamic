@@ -13,7 +13,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.core.dependencies import get_current_active_user, get_conversation_service
+from app.core.dependencies import get_conversation_service
 from app.ai.dependencies import ChatServiceDep
 from app.services.conversation_service import ConversationService
 from app.schemas.chat import (

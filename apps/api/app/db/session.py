@@ -8,8 +8,7 @@ DATABASE_URL = settings.DATABASE_URL or "sqlite:///./app.db"
 
 # Convert postgresql:// to postgresql+psycopg:// for psycopg3 compatibility
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace(
-        "postgresql://", "postgresql+psycopg://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # Database engine configuration
 engine_kwargs = {}

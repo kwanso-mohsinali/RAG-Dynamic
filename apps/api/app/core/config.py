@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = ENVIRONMENT == "development"
+    
+    # Logging
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
 
     # External APIs
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")

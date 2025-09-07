@@ -8,13 +8,13 @@ persistence using LangGraph workflows.
 from typing import Dict, Any, Optional, AsyncGenerator
 from uuid import UUID
 from langchain_core.messages import HumanMessage, AIMessage
-from workflows.rag_chat_workflow import (
+from app.ai.workflows.rag_chat_workflow import (
     create_rag_chat_workflow,
     validate_rag_chat_input,
     prepare_rag_chat_config,
 )
-from services.checkpointer_service import CheckpointerService
-from services.vector_service import VectorService
+from app.ai.services.checkpointer_service import CheckpointerService
+from app.ai.services.vector_service import VectorService
 
 
 class ChatService:

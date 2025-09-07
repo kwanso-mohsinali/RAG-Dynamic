@@ -1,5 +1,5 @@
 from langchain_postgres import PGEngine
-from config import settings
+from app.core.config import settings
 
 # Global shared engine instance
 _shared_pg_engine = None

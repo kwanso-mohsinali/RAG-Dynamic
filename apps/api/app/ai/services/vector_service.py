@@ -1,9 +1,9 @@
 from typing import Any, List, Optional, Dict
 from uuid import UUID
 from langchain_core.documents import Document
-from services.engine_service import get_shared_pg_engine
-from tools.embedding_tools import EmbeddingGenerationTool
-from config import settings
+from app.ai.services.engine_service import get_shared_pg_engine
+from app.ai.tools.embedding_tools import EmbeddingGenerationTool
+from app.core.config import settings
 from langchain_postgres import PGVectorStore
 
 

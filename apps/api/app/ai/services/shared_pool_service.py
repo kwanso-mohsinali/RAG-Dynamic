@@ -8,8 +8,8 @@ checkpointers can share, eliminating connection pool proliferation.
 from typing import Optional
 from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
-from config import settings
-from services.engine_service import get_shared_pg_engine
+from app.core.config import settings
+from app.ai.services.engine_service import get_shared_pg_engine
 
 # Global shared pool instance
 _shared_async_pool: Optional[AsyncConnectionPool] = None

@@ -10,9 +10,9 @@ Uses shared connection pool to prevent pool proliferation.
 
 from typing import Optional, Union
 from langgraph.checkpoint.memory import MemorySaver
-from config import settings
-from services.engine_service import get_shared_pg_engine
-from services.shared_pool_service import get_shared_async_pool
+from app.core.config import settings
+from app.ai.services.engine_service import get_shared_pg_engine
+from app.ai.services.shared_pool_service import get_shared_async_pool
 
 
 class CheckpointerService:

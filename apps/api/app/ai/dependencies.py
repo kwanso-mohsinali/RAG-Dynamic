@@ -1,11 +1,13 @@
 from typing import Annotated
 from fastapi import Depends
 from app.ai.services.chat_service import ChatService
+from app.ai.services.vector_service import VectorService
 
-def get_chat_service(
-) -> ChatService:
+
+def get_chat_service() -> ChatService:
     """Get ChatService instance with dependencies."""
-    return ChatService()
+    vector_service = VectorService()
+    return ChatService(vector_service)
 
 
 # Type aliases for clean injection

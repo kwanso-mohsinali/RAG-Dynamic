@@ -8,9 +8,9 @@ that define the graph structure and return compiled applications.
 from typing import Dict, Any
 from uuid import UUID
 from langgraph.graph import StateGraph, START, END
-from nodes.rag_processor_node import rag_processor_node_streaming_async
-from services.checkpointer_service import CheckpointerService
-from schemas.workflow_states import RAGChatState
+from app.ai.nodes.rag_processor_node import rag_processor_node_streaming_async
+from app.ai.services.checkpointer_service import CheckpointerService
+from app.ai.schemas.workflow_states import RAGChatState
 
 
 async def create_rag_chat_workflow(

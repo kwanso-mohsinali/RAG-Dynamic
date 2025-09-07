@@ -6,9 +6,9 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from services.vector_service import VectorService
-from config import settings
-from prompts.rag_prompts import RAG_SYSTEM_PROMPT
+from app.ai.services.vector_service import VectorService
+from app.core.config import settings
+from app.ai.prompts.rag_prompts import RAG_SYSTEM_PROMPT
 
 
 class RAGChain:

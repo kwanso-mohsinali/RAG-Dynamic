@@ -7,9 +7,9 @@ This node delegates all RAG processing logic to the RAGChain.
 from typing import Dict, Any
 from uuid import UUID
 from langchain_core.messages import HumanMessage, AIMessage
-from schemas.workflow_states import RAGChatState
-from chains.rag_chain import RAGChain
-from services.vector_service import VectorService
+from app.ai.schemas.workflow_states import RAGChatState
+from app.ai.chains.rag_chain import RAGChain
+from app.ai.services.vector_service import VectorService
 
 
 def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
