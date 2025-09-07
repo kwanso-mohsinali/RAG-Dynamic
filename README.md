@@ -60,10 +60,10 @@ CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 ```bash
 # Build and start all services
-docker-compose up --build
+docker compose up --build
 
 # Run in detached mode
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. Access the Application
@@ -157,7 +157,7 @@ pip install -r requirements.txt
 2. **Start services**:
 ```bash
 # Start only database and redis
-docker-compose up db redis -d
+docker compose up db redis -d
 
 # Run API locally
 cd apps/api
@@ -167,13 +167,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ### Database Migrations
 ```bash
 # Run migrations (when alembic is configured)
-docker-compose exec api alembic upgrade head
+docker compose exec api alembic upgrade head
 ```
 
 ### Celery Workers
 ```bash
 # Start celery worker (when configured)
-docker-compose up celery-worker
+docker compose up celery-worker
 ```
 
 ## 🔒 Security Considerations
