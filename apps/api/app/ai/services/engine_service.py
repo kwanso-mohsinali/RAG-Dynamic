@@ -1,5 +1,8 @@
 from langchain_postgres import PGEngine
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Global shared engine instance
 _shared_pg_engine = None
@@ -41,15 +44,15 @@ def get_shared_pg_engine() -> PGEngine:
             else:
                 langchain_url = database_url
 
-            print(f"[ENGINE_SERVICE] Creating PGEngine with psycopg3 driver")
+            logger.info(f"[ENGINE_SERVICE] Creating PGEngine with psycopg3 driver")
 
             # Create single PGEngine instance
             _shared_pg_engine = PGEngine.from_connection_string(url=langchain_url)
 
-            print("[ENGINE_SERVICE] Successfully created shared PGEngine instance")
+            logger.info("[ENGINE_SERVICE] Successfully created shared PGEngine instance")
 
         except Exception as e:
-            print(f"[ENGINE_SERVICE] Failed to create shared PGEngine: {str(e)}")
+            logger.error(f"[ENGINE_SERVICE] Failed to create shared PGEngine: {str(e)}")
             raise RuntimeError(f"Failed to create shared PGEngine: {str(e)}")
 
     return _shared_pg_engine
@@ -63,4 +66,4 @@ def reset_shared_engine():
     """
     global _shared_pg_engine
     _shared_pg_engine = None
-    print("[ENGINE_SERVICE] Reset shared engine")
+    logger.info("[ENGINE_SERVICE] Reset shared engine")

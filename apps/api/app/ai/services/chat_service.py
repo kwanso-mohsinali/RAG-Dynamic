@@ -15,7 +15,9 @@ from app.ai.workflows.rag_chat_workflow import (
 )
 from app.ai.services.checkpointer_service import CheckpointerService
 from app.ai.services.vector_service import VectorService
+import logging
 
+logger = logging.getLogger(__name__)
 
 class ChatService:
     """
@@ -51,7 +53,7 @@ class ChatService:
             Compiled LangGraph workflow
         """
         try:
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Creating {'async' if async_mode else 'sync'} workflow for resource {resource_id}"
             )
 
@@ -66,13 +68,13 @@ class ChatService:
                 async_mode=async_mode,  # Use proper async/sync mode
             )
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Workflow created successfully for resource {resource_id}"
             )
             return workflow
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHAT_SERVICE] Failed to create workflow for resource {resource_id}: {str(e)}"
             )
             raise RuntimeError(f"Failed to create workflow: {str(e)}")
@@ -95,8 +97,7 @@ class ChatService:
             RuntimeError: If processing fails
         """
         try:
-
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Processing chat message for resource {resource_id}, thread {thread_id}"
             )
 
@@ -108,21 +109,21 @@ class ChatService:
             }
 
             # Debug: Log what we're preparing
-            print(f"[CHAT_SERVICE] Input data: {input_data}")
+            logger.info(f"[CHAT_SERVICE] Input data: {input_data}")
 
             # Validate input
             validated_input = validate_rag_chat_input(input_data)
             config = prepare_rag_chat_config(thread_id or "default")
 
             # Debug: Log what we're passing to the workflow
-            print(f"[CHAT_SERVICE] Validated input: {validated_input}")
-            print(f"[CHAT_SERVICE] Config: {config}")
+            logger.info(f"[CHAT_SERVICE] Validated input: {validated_input}")
+            logger.info(f"[CHAT_SERVICE] Config: {config}")
 
             # Get async workflow for regular chat (consistent with ainvoke)
             workflow = await self._get_workflow(resource_id, async_mode=True)
 
             # Execute workflow
-            print(f"[CHAT_SERVICE] Executing async workflow for resource {resource_id}")
+            logger.info(f"[CHAT_SERVICE] Executing async workflow for resource {resource_id}")
             result = await workflow.ainvoke(validated_input, config=config)
             # Extract response
             answer = result.get("answer", "")
@@ -139,10 +140,10 @@ class ChatService:
             if not ai_message:
                 ai_message = AIMessage(content=answer)
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Successfully processed message for resource {resource_id}"
             )
-            print(f"[CHAT_SERVICE] Generated response length: {len(answer)} characters")
+            logger.info(f"[CHAT_SERVICE] Generated response length: {len(answer)} characters")
 
             return {
                 "answer": answer,
@@ -151,7 +152,7 @@ class ChatService:
             }
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHAT_SERVICE] Failed to process chat message for resource {resource_id}: {str(e)}"
             )
             raise RuntimeError(f"Failed to process chat message: {str(e)}")
@@ -180,7 +181,7 @@ class ChatService:
         """
         try:
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Processing non-streaming message for resource {resource_id}, thread {thread_id}"
             )
 
@@ -199,7 +200,7 @@ class ChatService:
 
             config = prepare_rag_chat_config(thread_id or "default")
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Starting workflow processing for resource {resource_id}"
             )
 
@@ -207,7 +208,7 @@ class ChatService:
             # This handles conversation state, persistence, and processing automatically
             result = await workflow.ainvoke(input_data, config=config)
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Successfully processed message for resource {resource_id}"
             )
 
@@ -228,7 +229,7 @@ class ChatService:
             }
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHAT_SERVICE] Failed to process message for resource {resource_id}: {str(e)}"
             )
             raise RuntimeError(f"Failed to process message: {str(e)}")
@@ -259,7 +260,7 @@ class ChatService:
 
         try:
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Processing streaming message for resource {resource_id}, thread {thread_id}"
             )
 
@@ -284,7 +285,7 @@ class ChatService:
             config = prepare_rag_chat_config(thread_id or "default")
 
             # Update workflow state to save user message
-            print(f"[CHAT_SERVICE] Updating workflow state with user message")
+            logger.info(f"[CHAT_SERVICE] Updating workflow state with user message")
             await workflow.ainvoke(validated_input, config=config)
 
             # Step 2: Get conversation history from updated workflow state
@@ -298,11 +299,11 @@ class ChatService:
                     and "messages" in current_state.values
                 ):
                     conversation_history = current_state.values["messages"]
-                    print(
+                    logger.info(
                         f"[CHAT_SERVICE] Loaded {len(conversation_history)} messages from conversation history"
                     )
             except Exception as e:
-                print(f"[CHAT_SERVICE] Could not load conversation history: {str(e)}")
+                logger.error(f"[CHAT_SERVICE] Could not load conversation history: {str(e)}")
 
             # Step 3: Stream response using RAG chain
             from chains.rag_chain import RAGChain
@@ -312,7 +313,7 @@ class ChatService:
             # Prepare input for streaming
             input_data = {"input": message, "chat_history": conversation_history}
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] Starting RAG chain streaming for resource {resource_id}"
             )
 
@@ -328,7 +329,7 @@ class ChatService:
                     # Check timeout
                     current_time = asyncio.get_event_loop().time()
                     if current_time - start_time > timeout_seconds:
-                        print(
+                        logger.error(
                             f"[CHAT_SERVICE] Streaming timeout after {timeout_seconds} seconds"
                         )
                         break
@@ -354,7 +355,7 @@ class ChatService:
                             source_documents = source_docs
 
             except asyncio.TimeoutError:
-                print(f"[CHAT_SERVICE] Streaming timeout for resource {resource_id}")
+                logger.error(f"[CHAT_SERVICE] Streaming timeout for resource {resource_id}")
                 yield {
                     "content": "Streaming timeout - response incomplete",
                     "thread_id": thread_id or "default",
@@ -374,7 +375,7 @@ class ChatService:
                     conversation_history.append(ai_message)
 
                     # Update workflow state with the complete conversation
-                    print(
+                    logger.info(
                         f"[CHAT_SERVICE] Updating workflow state with AI response (length: {len(complete_response)})"
                     )
 
@@ -382,14 +383,14 @@ class ChatService:
                     # so we just need to ensure the AI response is also saved
                     # This is handled automatically by the workflow's state management
 
-                    print(
+                    logger.info(
                         f"[CHAT_SERVICE] Workflow state update completed for thread_id: {thread_id}"
                     )
                 except Exception as e:
-                    print(f"[CHAT_SERVICE] Could not update workflow state: {str(e)}")
+                    logger.error(f"[CHAT_SERVICE] Could not update workflow state: {str(e)}")
                     # Don't fail the streaming if workflow update fails
 
-            # Send final chunk with full context and source information
+            # Send final chunk
             final_chunk = {
                 "content": "",
                 "thread_id": thread_id or "default",
@@ -398,7 +399,7 @@ class ChatService:
             yield final_chunk
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHAT_SERVICE] Failed to process chat message for resource {resource_id}: {str(e)}"
             )
             raise RuntimeError(f"Failed to process chat message: {str(e)}")
@@ -443,7 +444,7 @@ class ChatService:
                         # Get message content
                         content = getattr(message, "content", "")
                         if not content:
-                            print(f"[CHAT_SERVICE] Message has no content: {message}")
+                            logger.info(f"[CHAT_SERVICE] Message has no content: {message}")
                             continue
 
                         # Determine message role
@@ -455,7 +456,7 @@ class ChatService:
                             role = "human" if message.type == "human" else "assistant"
                         else:
                             role = "unknown"
-                            print(
+                            logger.info(
                                 f"[CHAT_SERVICE] Unknown message type: {type(message)}"
                             )
 
@@ -478,7 +479,7 @@ class ChatService:
                         # Get message content
                         content = getattr(message, "content", "")
                         if not content:
-                            print(f"[CHAT_SERVICE] Message has no content: {message}")
+                            logger.info(f"[CHAT_SERVICE] Message has no content: {message}")
                             continue
 
                         # Determine message role
@@ -490,7 +491,7 @@ class ChatService:
                             role = "human" if message.type == "human" else "assistant"
                         else:
                             role = "unknown"
-                            print(
+                            logger.info(
                                 f"[CHAT_SERVICE] Unknown message type: {type(message)}"
                             )
 
@@ -503,22 +504,22 @@ class ChatService:
                         )
                     return history
                 else:
-                    print(
+                    logger.info(
                         f"[CHAT_SERVICE] No 'messages' found in state.values or direct attribute"
                     )
-                    print(
+                    logger.info(
                         f"[CHAT_SERVICE] Available keys in state.values: {list(current_state.values.keys()) if hasattr(current_state, 'values') else 'No values attribute'}"
                     )
             else:
-                print(f"[CHAT_SERVICE] No current state found for thread {thread_id}")
+                logger.info(f"[CHAT_SERVICE] No current state found for thread {thread_id}")
 
-            print(
+            logger.info(
                 f"[CHAT_SERVICE] No conversation history found for thread {thread_id}"
             )
             return []
 
         except Exception as e:
-            print(f"[CHAT_SERVICE] Failed to get conversation history: {str(e)}")
+            logger.error(f"[CHAT_SERVICE] Failed to get conversation history: {str(e)}")
             return []
 
 
@@ -531,7 +532,7 @@ class ChatService:
         try:
             return await self._checkpointer_service.delete_postgres_checkpointer(thread_id)
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHAT_SERVICE] Failed to clear conversation for thread {thread_id}: {str(e)}"
             )
             raise RuntimeError(f"Failed to clear conversation history: {str(e)}")

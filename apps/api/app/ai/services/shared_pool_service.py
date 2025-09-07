@@ -10,6 +10,9 @@ from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
 from app.core.config import settings
 from app.ai.services.engine_service import get_shared_pg_engine
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Global shared pool instance
 _shared_async_pool: Optional[AsyncConnectionPool] = None
@@ -35,7 +38,7 @@ async def get_shared_async_pool() -> AsyncConnectionPool:
             # Use the same connection string as shared engine
             connection_string = _get_connection_string()
 
-            print("[SHARED_POOL_SERVICE] Creating shared AsyncConnectionPool")
+            logger.info("[SHARED_POOL_SERVICE] Creating shared AsyncConnectionPool")
 
             # Create single pool instance with optimized settings for shared usage
             # Use open=False to prevent deprecated automatic opening in constructor
@@ -49,25 +52,25 @@ async def get_shared_async_pool() -> AsyncConnectionPool:
                 open=False,  # Prevent automatic opening in constructor (deprecated)
             )
 
-            print(
+            logger.info(
                 f"[SHARED_POOL_SERVICE] Created shared AsyncConnectionPool with max_size=15, min_size=3"
             )
-            print(
+            logger.info(
                 f"[SHARED_POOL_SERVICE] Using connection: {connection_string.split('@')[1] if '@' in connection_string else 'unknown'}"
             )
 
             # Open the pool to establish connections - CRITICAL for proper operation
-            print(f"[SHARED_POOL_SERVICE] Opening AsyncConnectionPool...")
+            logger.info(f"[SHARED_POOL_SERVICE] Opening AsyncConnectionPool...")
             await _shared_async_pool.open()
-            print(f"[SHARED_POOL_SERVICE] AsyncConnectionPool opened successfully")
+            logger.info(f"[SHARED_POOL_SERVICE] AsyncConnectionPool opened successfully")
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[SHARED_POOL_SERVICE] Failed to create shared AsyncConnectionPool: {str(e)}"
             )
             raise RuntimeError(f"Failed to create shared AsyncConnectionPool: {str(e)}")
 
-    print(
+    logger.info(
         f"[SHARED_POOL_SERVICE] Returning shared pool (pool_id: {id(_shared_async_pool)})"
     )
     return _shared_async_pool
@@ -102,7 +105,7 @@ def _get_connection_string() -> str:
             return url
 
     except Exception as e:
-        print(f"[SHARED_POOL_SERVICE] Failed to get connection string: {str(e)}")
+        logger.error(f"[SHARED_POOL_SERVICE] Failed to get connection string: {str(e)}")
         # Fallback to original database URL
         return settings.DATABASE_URL
 
@@ -119,12 +122,12 @@ def reset_shared_pool():
         try:
             # Close the existing pool
             _shared_async_pool.close()
-            print("[SHARED_POOL_SERVICE] Closed existing shared pool")
+            logger.info("[SHARED_POOL_SERVICE] Closed existing shared pool")
         except Exception as e:
-            print(f"[SHARED_POOL_SERVICE] Error closing pool: {str(e)}")
+            logger.error(f"[SHARED_POOL_SERVICE] Error closing pool: {str(e)}")
 
     _shared_async_pool = None
-    print("[SHARED_POOL_SERVICE] Reset shared pool")
+    logger.info("[SHARED_POOL_SERVICE] Reset shared pool")
 
 
 def get_pool_stats() -> dict:

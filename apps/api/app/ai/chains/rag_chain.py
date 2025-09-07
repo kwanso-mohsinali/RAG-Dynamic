@@ -9,7 +9,9 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.ai.services.vector_service import VectorService
 from app.core.config import settings
 from app.ai.prompts.rag_prompts import RAG_SYSTEM_PROMPT
+import logging
 
+logger = logging.getLogger(__name__)
 
 class RAGChain:
     """Complete RAG system implementation using LangChain, pgvector, and OpenAI."""
@@ -146,7 +148,7 @@ class RAGChain:
             return answer
 
         except Exception as e:
-            print(f"[RAG_CHAIN] Error processing query: {str(e)}")
+            logger.error(f"[RAG_CHAIN] Error processing query: {str(e)}")
             raise
 
     async def astream(self, input_data: Dict[str, Any]):
@@ -171,13 +173,13 @@ class RAGChain:
             if not user_input or not user_input.strip():
                 raise ValueError("User input cannot be empty")
 
-            print(
+            logger.info(
                 f"[RAG_CHAIN] Starting streaming for query: {user_input[:50]}..."
             )
 
             # Retrieve relevant documents
             relevant_docs = self.retriever.invoke(user_input)
-            print(
+            logger.info(
                 f"[RAG_CHAIN] Retrieved {len(relevant_docs)} relevant documents"
             )
 
@@ -216,11 +218,11 @@ class RAGChain:
                         "source_documents": relevant_docs,
                     }
                 else:
-                    print(f"[RAG_CHAIN] Empty chunk {chunk_count}")
+                    logger.info(f"[RAG_CHAIN] Empty chunk {chunk_count}")
 
-            print(f"[RAG_CHAIN] Streaming completed with {chunk_count} chunks")
+            logger.info(f"[RAG_CHAIN] Streaming completed with {chunk_count} chunks")
 
         except Exception as e:
-            print(f"[RAG_CHAIN] Error streaming query: {str(e)}")
+            logger.error(f"[RAG_CHAIN] Error streaming query: {str(e)}")
             # Yield error chunk instead of raising
             yield {"answer": f"Error: {str(e)}", "context": "", "source_documents": []}

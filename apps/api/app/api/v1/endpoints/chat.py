@@ -53,7 +53,7 @@ async def send_chat_message(
     This endpoint:
     - Creates or uses existing conversation
     - Processes the message through the RAG pipeline
-    - Returns the AI response with context
+    - Returns the AI response
     """
     try:
         logger.info(
@@ -82,7 +82,6 @@ async def send_chat_message(
 
         return ChatMessageResponse(
             answer=ai_response.get("answer", ""),
-            context=ai_response.get("context", ""),
             conversation_id=updated_conversation.id,
             thread_id=ai_response.get("thread_id", conversation.thread_id),
             message_count=updated_conversation.message_count,
@@ -159,7 +158,6 @@ async def stream_chat_message(
                     # Format as Server-Sent Events
                     stream_chunk = ChatStreamChunk(
                         content=chunk.get("content", ""),
-                        context=chunk.get("context", ""),
                         conversation_id=conversation.id,
                         thread_id=chunk.get("thread_id", conversation.thread_id),
                         is_final=chunk.get("is_final", False),
@@ -184,7 +182,6 @@ async def stream_chat_message(
                 logger.error(f"[CHAT_ENDPOINT] Error in stream generation: {str(e)}")
                 error_chunk = ChatStreamChunk(
                     content=f"Error: {str(e)}",
-                    context="",
                     conversation_id=conversation.id,
                     thread_id=conversation.thread_id or "error",
                     is_final=True,

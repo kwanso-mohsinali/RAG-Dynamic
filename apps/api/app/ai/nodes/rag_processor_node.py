@@ -10,7 +10,9 @@ from langchain_core.messages import HumanMessage, AIMessage
 from app.ai.schemas.workflow_states import RAGChatState
 from app.ai.chains.rag_chain import RAGChain
 from app.ai.services.vector_service import VectorService
+import logging
 
+logger = logging.getLogger(__name__)
 
 def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
     """
@@ -32,7 +34,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         if hasattr(state, "resource_id")
         else state.get("resource_id", "unknown")
     )
-    print(f"[RAG_PROCESSOR_NODE] Starting RAG processing for resource {resource_id}")
+    logger.info(f"[RAG_PROCESSOR_NODE] Starting RAG processing for resource {resource_id}")
 
     try:
         # Extract messages from state (LangGraph already merged conversation history)
@@ -40,7 +42,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
             state.messages if hasattr(state, "messages") else state.get("messages", [])
         )
         if not messages:
-            print(
+            logger.info(
                 f"[RAG_PROCESSOR_NODE] No messages provided for resource {resource_id}"
             )
             return {
@@ -51,7 +53,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         # Get the last human message (the current user input)
         last_message = messages[-1]
         if not isinstance(last_message, HumanMessage):
-            print(
+            logger.info(
                 f"[RAG_PROCESSOR_NODE] Expected human message for resource {resource_id}"
             )
             return {
@@ -60,7 +62,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
             }
 
         user_input = last_message.content
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE] Processing query: {user_input[:50]}... for resource {resource_id}"
         )
 
@@ -69,7 +71,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         chat_history = messages[:-1] if len(messages) > 1 else []
 
         # Initialize RAG processing chain
-        print(f"[RAG_PROCESSOR_NODE] Initializing RAGChain for resource {resource_id}")
+        logger.info(f"[RAG_PROCESSOR_NODE] Initializing RAGChain for resource {resource_id}")
 
         # IMPORTANT: Use shared VectorService from the workflow instead of creating new one
         # The vector_service should be passed through the workflow state or we need to modify
@@ -81,7 +83,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         rag_chain = RAGChain(UUID(resource_id), vector_service)
 
         # Process through chain
-        print(f"[RAG_PROCESSOR_NODE] Delegating to RAGChain for resource {resource_id}")
+        logger.info(f"[RAG_PROCESSOR_NODE] Delegating to RAGChain for resource {resource_id}")
 
         # Use invoke method for consistent processing
         chain_result = rag_chain.invoke(
@@ -94,10 +96,10 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         # Create AI response message
         ai_message = {"role": "assistant", "content": answer}
 
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE] RAG processing completed successfully for resource {resource_id}"
         )
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE] Generated response length: {len(answer)} characters"
         )
 
@@ -110,7 +112,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE] RAG processor node failed for resource {resource_id}: {str(e)}"
         )
 
@@ -140,16 +142,15 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
     Returns:
         Updated state with RAG processing results
     """
-    import asyncio
     from langchain_openai import ChatOpenAI
-    from config import settings
+    from app.core.config import settings
 
     resource_id = (
         state.resource_id
         if hasattr(state, "resource_id")
         else state.get("resource_id", "unknown")
     )
-    print(
+    logger.info(
         f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Starting async streaming RAG processing for resource {resource_id}"
     )
 
@@ -159,7 +160,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
             state.messages if hasattr(state, "messages") else state.get("messages", [])
         )
         if not messages:
-            print(
+            logger.info(
                 f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] No messages provided for resource {resource_id}"
             )
             return {
@@ -169,33 +170,33 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
 
         # Get the last human message (the current user input)
         last_message = messages[-1]
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Last message type: {type(last_message)}, content: {getattr(last_message, 'content', '')[:50]}..."
         )
 
         # Debug: Log all messages to understand the conversation state
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Total messages in conversation: {len(messages)}"
         )
         for i, msg in enumerate(messages):
-            print(
+            logger.info(
                 f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Message {i}: {type(msg)} - {getattr(msg, 'content', '')[:50]}..."
             )
 
         if not isinstance(last_message, HumanMessage):
-            print(
+            logger.info(
                 f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Expected human message for resource {resource_id}, got {type(last_message)}"
             )
             # Instead of returning an error, try to find the last human message
             human_messages = [msg for msg in messages if isinstance(msg, HumanMessage)]
             if human_messages:
                 last_human_message = human_messages[-1]
-                print(
+                logger.info(
                     f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Found last human message: {last_human_message.content[:50]}..."
                 )
                 user_input = last_human_message.content
             else:
-                print(
+                logger.info(
                     f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] No human messages found in conversation"
                 )
                 return {
@@ -206,7 +207,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
                 }
         else:
             user_input = last_message.content
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Processing query: {user_input[:50]}... for resource {resource_id}"
         )
 
@@ -214,7 +215,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         chat_history = messages[:-1] if len(messages) > 1 else []
 
         # Initialize vector service for document retrieval
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Initializing VectorService for resource {resource_id}"
         )
 
@@ -226,7 +227,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         )
 
         relevant_docs = retriever.invoke(user_input)
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Retrieved {len(relevant_docs)} relevant documents"
         )
 
@@ -255,7 +256,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
 
         # Initialize LLM with streaming support
         llm = ChatOpenAI(
-            model="gpt-4o-mini",
+            model=settings.MODEL,
             streaming=True,  # This enables streaming
             openai_api_key=settings.OPENAI_API_KEY,
         )
@@ -282,7 +283,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
 
         # Use the LLM with async streaming
         # This allows LangGraph to stream the tokens
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Calling LLM with async streaming for resource {resource_id}"
         )
 
@@ -293,10 +294,10 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         # Create AI response message
         ai_message = {"role": "assistant", "content": answer}
 
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] RAG processing completed successfully for resource {resource_id}"
         )
-        print(
+        logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] Generated response length: {len(answer)} characters"
         )
 
@@ -310,7 +311,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         }
 
     except Exception as e:
-        print(
+        logger.error(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] RAG processor node failed for resource {resource_id}: {str(e)}"
         )
 

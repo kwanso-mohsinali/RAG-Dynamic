@@ -2,7 +2,9 @@ from typing import List, Optional
 from pathlib import Path
 from langchain_community.document_loaders import TextLoader, UnstructuredMarkdownLoader
 from langchain_core.documents import Document
+import logging
 
+logger = logging.getLogger(__name__)
 
 class TextExtractionTool:
     """Tool for extracting and processing plain text documents."""
@@ -39,7 +41,7 @@ class TextExtractionTool:
             loader = TextLoader(file_path, encoding=encoding)
             documents = loader.load()
 
-            print(
+            logger.info(
                 f"[TEXT_EXTRACTION] Extracted {len(documents)} documents from {file_path}"
             )
 
@@ -47,7 +49,7 @@ class TextExtractionTool:
             source_filename = (
                 original_filename if original_filename else Path(file_path).name
             )
-            print(f"[TEXT_EXTRACTION] Source filename: {source_filename}")
+            logger.info(f"[TEXT_EXTRACTION] Source filename: {source_filename}")
 
             # Enhance metadata for each document
             for doc in documents:
@@ -64,7 +66,7 @@ class TextExtractionTool:
             return documents
 
         except Exception as e:
-            print(f"[TEXT_EXTRACTION] Extraction failed: {str(e)}")
+            logger.error(f"[TEXT_EXTRACTION] Extraction failed: {str(e)}")
             raise ValueError(f"Failed to extract text from file: {str(e)}")
 
     def extract_markdown(
@@ -80,7 +82,7 @@ class TextExtractionTool:
             loader = UnstructuredMarkdownLoader(file_path)
             documents = loader.load()
 
-            print(
+            logger.info(
                 f"[MARKDOWN_EXTRACTION] Extracted {len(documents)} documents from {file_path}"
             )
 
@@ -88,7 +90,7 @@ class TextExtractionTool:
             source_filename = (
                 original_filename if original_filename else Path(file_path).name
             )
-            print(f"[MARKDOWN_EXTRACTION] Source filename: {source_filename}")
+            logger.info(f"[MARKDOWN_EXTRACTION] Source filename: {source_filename}")
 
             # Enhance metadata for each document
             for doc in documents:
@@ -104,7 +106,7 @@ class TextExtractionTool:
             return documents
 
         except Exception as e:
-            print(f"[MARKDOWN_EXTRACTION] Extraction failed: {str(e)}")
+            logger.error(f"[MARKDOWN_EXTRACTION] Extraction failed: {str(e)}")
             raise ValueError(f"Failed to extract text from file: {str(e)}")
 
     def detect_encoding(self, file_path: str) -> str:

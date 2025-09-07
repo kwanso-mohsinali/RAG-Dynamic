@@ -5,7 +5,9 @@ from app.ai.services.engine_service import get_shared_pg_engine
 from app.ai.tools.embedding_tools import EmbeddingGenerationTool
 from app.core.config import settings
 from langchain_postgres import PGVectorStore
+import logging
 
+logger = logging.getLogger(__name__)
 
 class VectorService:
     """
@@ -32,7 +34,7 @@ class VectorService:
 
         # Always use shared engine to eliminate connection proliferation
         self.engine = get_shared_pg_engine()
-        print("[VECTOR_SERVICE] Using shared PGEngine for vector operations")
+        logger.info("[VECTOR_SERVICE] Using shared PGEngine for vector operations")
 
     def get_collection_name(self, resource_id: UUID) -> str:
         """
@@ -66,7 +68,7 @@ class VectorService:
         Raises:
             RuntimeError: If vector store creation fails
         """
-        print(
+        logger.info(
             f"[VECTOR_SERVICE] Creating vector store for collection: {collection_name}"
         )
 
@@ -78,13 +80,13 @@ class VectorService:
                 embedding_service=self.embeddings,
             )
 
-            print(
+            logger.info(
                 f"[VECTOR_SERVICE] Successfully created vector store for {collection_name}"
             )
             return vector_store
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[VECTOR_SERVICE] Failed to create vector store for {collection_name}: {str(e)}"
             )
             raise RuntimeError(f"Failed to create vector store: {str(e)}")
@@ -104,13 +106,13 @@ class VectorService:
         Raises:
             RuntimeError: If vector store creation fails
         """
-        print(
+        logger.info(
             f"[VECTOR_SERVICE] Getting vector store for collection: {collection_name}"
         )
 
         try:
             # Ensure table exists first
-            print(f"[VECTOR_SERVICE] Ensuring {collection_name} table exists ")
+            logger.info(f"[VECTOR_SERVICE] Ensuring {collection_name} table exists ")
             self._ensure_table_exists(collection_name)
 
             # Use shared engine instead of creating new one
@@ -120,13 +122,13 @@ class VectorService:
                 embedding_service=self.embeddings,
             )
 
-            print(
+            logger.info(
                 f"[VECTOR_SERVICE] Successfully got vector store for {collection_name}"
             )
             return vector_store
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[VECTOR_SERVICE] Failed to get vector store for {collection_name}: {str(e)}"
             )
             raise RuntimeError(f"Failed to get vector store: {str(e)}")
@@ -144,12 +146,12 @@ class VectorService:
             RuntimeError: If table creation fails for reasons other than existing table
         """
 
-        print(f"[VECTOR_SERVICE] Ensuring table exists: {collection_name}")
+        logger.info(f"[VECTOR_SERVICE] Ensuring table exists: {collection_name}")
 
         try:
             # Use shared engine for table initialization
             vector_size = self.embedding_tool.get_embedding_dimension()
-            print(f"[VECTOR_SERVICE] Vector size: {vector_size}")
+            logger.info(f"[VECTOR_SERVICE] Vector size: {vector_size}")
 
             # Try to initialize table, but handle DuplicateTable gracefully
             try:
@@ -157,7 +159,7 @@ class VectorService:
                     table_name=collection_name,
                     vector_size=vector_size,
                 )
-                print(
+                logger.info(
                     f"[VECTOR_SERVICE] Successfully created new table: {collection_name}"
                 )
             except Exception as table_error:
@@ -165,17 +167,17 @@ class VectorService:
                 if "already exists" in str(table_error) or "DuplicateTable" in str(
                     table_error
                 ):
-                    print(
+                    logger.info(
                         f"[VECTOR_SERVICE] Table already exists (expected): {collection_name}"
                     )
                 else:
                     # Re-raise if it's a different error
                     raise table_error
 
-            print(f"[VECTOR_SERVICE] Table ready for use: {collection_name}")
+            logger.info(f"[VECTOR_SERVICE] Table ready for use: {collection_name}")
 
         except Exception as e:
-            print(f"[VECTOR_SERVICE] Failed to ensure table exists: {str(e)}")
+            logger.error(f"[VECTOR_SERVICE] Failed to ensure table exists: {str(e)}")
             raise RuntimeError(f"Failed to ensure table exists: {str(e)}")
 
     def create_retriever(
@@ -196,7 +198,7 @@ class VectorService:
         """
         try:
             collection_name = self.get_collection_name(resource_id)
-            print(
+            logger.info(
                 f"[VECTOR_SERVICE] Creating retriever for collection: {collection_name}"
             )
 
@@ -209,15 +211,15 @@ class VectorService:
                 default_search_kwargs.update(search_kwargs)
 
             # SERVICE RESPONSIBILITY: Create retriever using pre-created vector store
-            print(f"[VECTOR_SERVICE] Creating retriever using existing vector store")
+            logger.info(f"[VECTOR_SERVICE] Creating retriever using existing vector store")
             vector_store = self._get_vector_store(collection_name)
             retriever = vector_store.as_retriever(search_kwargs=default_search_kwargs)
 
-            print(f"[VECTOR_SERVICE] Successfully created retriever")
+            logger.info(f"[VECTOR_SERVICE] Successfully created retriever")
             return retriever
 
         except Exception as e:
-            print(f"[VECTOR_SERVICE] Failed to create retriever: {str(e)}")
+            logger.error(f"[VECTOR_SERVICE] Failed to create retriever: {str(e)}")
             raise RuntimeError(f"Failed to create retriever: {str(e)}")
 
     def similarity_search(
@@ -244,7 +246,7 @@ class VectorService:
         """
         try:
             collection_name = self.get_collection_name(resource_id)
-            print(
+            logger.info(
                 f"[VECTOR_SERVICE] Performing similarity search in collection: {collection_name}"
             )
 
@@ -252,15 +254,15 @@ class VectorService:
             search_filter = filter_dict if filter_dict else None
 
             # SERVICE RESPONSIBILITY: Perform search using pre-created vector store
-            print(f"[VECTOR_SERVICE] Performing search using existing vector store")
+            logger.info(f"[VECTOR_SERVICE] Performing search using existing vector store")
             vector_store = self._get_vector_store(collection_name)
             results = vector_store.similarity_search(query, k=k, filter=search_filter)
 
-            print(f"[VECTOR_SERVICE] Found {len(results)} similar documents")
+            logger.info(f"[VECTOR_SERVICE] Found {len(results)} similar documents")
             return results
 
         except Exception as e:
-            print(f"[VECTOR_SERVICE] Similarity search failed: {str(e)}")
+            logger.error(f"[VECTOR_SERVICE] Similarity search failed: {str(e)}")
             raise RuntimeError(f"Similarity search failed: {str(e)}")
 
     def store_documents(
@@ -281,21 +283,21 @@ class VectorService:
         Raises:
             RuntimeError: If storage operation fails
         """
-        print(
+        logger.info(
             f"Storing documents in vector database {len(documents)}",
         )
 
         try:
             collection_name = self.get_collection_name(resource_id)
-            print(f"[VECTOR_SERVICE] Using collection name: {collection_name}")
+            logger.info(f"[VECTOR_SERVICE] Using collection name: {collection_name}")
 
             # SERVICE RESPONSIBILITY: Add metadata
-            print(f"[VECTOR_SERVICE] Adding metadata to {len(documents)} documents")
+            logger.info(f"[VECTOR_SERVICE] Adding metadata to {len(documents)} documents")
             for doc in documents:
                 doc.metadata.update({"collection": collection_name})
 
             # SERVICE RESPONSIBILITY: Store documents using pre-created vector store
-            print(f"[VECTOR_SERVICE] Storing documents using existing vector store")
+            logger.info(f"[VECTOR_SERVICE] Storing documents using existing vector store")
             vector_store = self._get_vector_store(collection_name)
             document_ids = vector_store.add_documents(documents)
 
@@ -308,13 +310,13 @@ class VectorService:
                 "embedding_model": "text-embedding-3-small",
             }
 
-            print(
+            logger.info(
                 f"[VECTOR_SERVICE] Successfully stored {enhanced_result['document_count']} documents in vector database",
             )
             return enhanced_result
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[VECTOR_SERVICE] Failed to store documents in vector database: {str(e)}"
             )
             raise RuntimeError(

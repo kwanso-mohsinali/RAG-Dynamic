@@ -3,7 +3,9 @@ from typing import Dict, Any, List
 from pathlib import Path
 from datetime import datetime
 from langchain_core.documents import Document
+import logging
 
+logger = logging.getLogger(__name__)
 
 class ExcelExtractionTool:
     """
@@ -29,7 +31,7 @@ class ExcelExtractionTool:
             Dictionary containing extracted data and metadata
         """
 
-        print(f"[EXCEL_EXTRACTION] Starting extraction: {file_path}")
+        logger.info(f"[EXCEL_EXTRACTION] Starting extraction: {file_path}")
 
         try:
             # Validate file
@@ -38,7 +40,7 @@ class ExcelExtractionTool:
 
             # Get file info
             excel_info = self._get_excel_info(file_path)
-            print(f"[EXCEL_EXTRACTION] File size: {excel_info['size_mb']:.2f}MB")
+            logger.info(f"[EXCEL_EXTRACTION] File size: {excel_info['size_mb']:.2f}MB")
 
             loader = UnstructuredExcelLoader(
                 file_path,
@@ -47,11 +49,11 @@ class ExcelExtractionTool:
 
             # Load documents
             documents = loader.load()
-            print(
+            logger.info(
                 f"[EXCEL_EXTRACTION] Extracted {len(documents)} documents from {file_path}"
             )
             source_filename = original_filename or excel_info["filename"]
-            print(f"[EXCEL_EXTRACTION] Source filename: {source_filename}")
+            logger.info(f"[EXCEL_EXTRACTION] Source filename: {source_filename}")
 
             for doc in documents:
                 doc.metadata.update(
@@ -66,7 +68,7 @@ class ExcelExtractionTool:
             return documents
 
         except Exception as e:
-            print(f"[EXCEL_EXTRACTION] Extraction failed: {str(e)}")
+            logger.error(f"[EXCEL_EXTRACTION] Extraction failed: {str(e)}")
             raise RuntimeError(f"Excel extraction failed: {str(e)}")
 
     def _validate_excel_file(self, file_path: str) -> bool:

@@ -1,7 +1,9 @@
 from typing import List
 from langchain_openai import OpenAIEmbeddings
 from app.core.config import settings
+import logging
 
+logger = logging.getLogger(__name__)
 
 class EmbeddingGenerationTool:
     """Tool for generating embeddings using OpenAI models."""

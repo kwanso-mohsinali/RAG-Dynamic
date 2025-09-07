@@ -11,7 +11,9 @@ from langgraph.graph import StateGraph, START, END
 from app.ai.nodes.rag_processor_node import rag_processor_node_streaming_async
 from app.ai.services.checkpointer_service import CheckpointerService
 from app.ai.schemas.workflow_states import RAGChatState
+import logging
 
+logger = logging.getLogger(__name__)
 
 async def create_rag_chat_workflow(
     resource_id: UUID,
@@ -34,23 +36,23 @@ async def create_rag_chat_workflow(
     # Use provided checkpointer service or create new one
     if checkpointer_service is None:
         checkpointer_service = CheckpointerService()
-        print("[RAG_CHAT_WORKFLOW] Created new CheckpointerService")
+        logger.info("[RAG_CHAT_WORKFLOW] Created new CheckpointerService")
     else:
-        print(
+        logger.info(
             "[RAG_CHAT_WORKFLOW] Using provided CheckpointerService with shared connection"
         )
 
     # Create checkpointer based on mode
     if async_mode:
-        print("[RAG_CHAT_WORKFLOW] Using async checkpointer for streaming")
+        logger.info("[RAG_CHAT_WORKFLOW] Using async checkpointer for streaming")
     else:
-        print("[RAG_CHAT_WORKFLOW] Using sync checkpointer for regular execution")
+        logger.info("[RAG_CHAT_WORKFLOW] Using sync checkpointer for regular execution")
 
     checkpointer = await checkpointer_service.create_checkpointer(async_mode)
 
     # Log checkpointer type
     checkpointer_type = checkpointer_service.get_checkpointer_type(checkpointer)
-    print(
+    logger.info(
         f"[RAG_CHAT_WORKFLOW] Using {checkpointer_type} checkpointer for resource {resource_id}"
     )
 
@@ -58,7 +60,7 @@ async def create_rag_chat_workflow(
     # Note: For PostgreSQL checkpointers, LangGraph will handle the context manager
     app = workflow.compile(checkpointer=checkpointer)
 
-    print(
+    logger.info(
         f"[RAG_CHAT_WORKFLOW] Workflow compiled successfully for resource {resource_id}"
     )
 
@@ -108,10 +110,10 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         "answer": "",  # Initialize empty answer
     }
 
-    print(
+    logger.info(
         f"[RAG_CHAT_WORKFLOW] Prepared input state with {len(state['messages'])} messages for thread_id: {thread_id}"
     )
-    print(f"[RAG_CHAT_WORKFLOW] Human message content: {human_message['content'][:50]}...")
+    logger.info(f"[RAG_CHAT_WORKFLOW] Human message content: {human_message['content'][:50]}...")
 
     return state
 

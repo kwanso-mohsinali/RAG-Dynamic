@@ -2,7 +2,9 @@ from typing import List
 from pathlib import Path
 import tempfile
 from langchain_core.documents import Document
+import logging
 
+logger = logging.getLogger(__name__)
 
 class PDFExtractionTool:
     """Tool for extracting text and metadata from PDF documents using Unstructured."""
@@ -16,7 +18,7 @@ class PDFExtractionTool:
         try:
             from unstructured.partition.pdf import partition_pdf
 
-            print("[PDF_EXTRACTION_TOOL] Unstructured library available")
+            logger.info("[PDF_EXTRACTION_TOOL] Unstructured library available")
         except ImportError as e:
             raise ImportError(f"Unstructured library not available: {str(e)}")
 
@@ -38,7 +40,7 @@ class PDFExtractionTool:
         """
         source_filename = original_filename or Path(file_path).name
 
-        print(f"[PDF_EXTRACTION_TOOL] Using Unstructured for {source_filename}")
+        logger.info(f"[PDF_EXTRACTION_TOOL] Using Unstructured for {source_filename}")
 
         try:
             from unstructured.partition.pdf import partition_pdf
@@ -109,7 +111,7 @@ class PDFExtractionTool:
                     )
                     documents.append(doc)
 
-                print(
+                logger.info(
                     f"[PDF_EXTRACTION_TOOL] Successfully extracted {len(documents)} pages from {source_filename}"
                 )
                 return documents
@@ -117,7 +119,7 @@ class PDFExtractionTool:
         except ImportError as e:
             raise ValueError(f"Unstructured library not available: {str(e)}")
         except Exception as e:
-            print(
+            logger.error(
                 f"[PDF_EXTRACTION_TOOL] Extraction failed for {source_filename}: {str(e)}"
             )
             raise ValueError(f"PDF extraction failed: {str(e)}")

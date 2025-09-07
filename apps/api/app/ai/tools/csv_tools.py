@@ -2,7 +2,9 @@ from typing import List, Optional
 from pathlib import Path
 from langchain_community.document_loaders import CSVLoader
 from langchain_core.documents import Document
+import logging
 
+logger = logging.getLogger(__name__)
 
 class CSVExtractionTool:
     """Tool for extracting and processing CSV documents."""
@@ -34,7 +36,7 @@ class CSVExtractionTool:
                 csv_args={"delimiter": csv_delimiter},
             )
             documents = loader.load()
-            print(
+            logger.info(
                 f"[CSV_EXTRACTION] Extracted {len(documents)} documents from {file_path}"
             )
 
@@ -42,7 +44,7 @@ class CSVExtractionTool:
             source_filename = (
                 original_filename if original_filename else Path(file_path).name
             )
-            print(f"[CSV_EXTRACTION] Source filename: {source_filename}")
+            logger.info(f"[CSV_EXTRACTION] Source filename: {source_filename}")
 
             # Enhance metadata for each document
             for doc in documents:
@@ -59,5 +61,5 @@ class CSVExtractionTool:
             return documents
 
         except Exception as e:
-            print(f"[CSV_EXTRACTION] Extraction failed: {str(e)}")
+            logger.error(f"[CSV_EXTRACTION] Extraction failed: {str(e)}")
             raise ValueError(f"Failed to extract CSV from file: {str(e)}")

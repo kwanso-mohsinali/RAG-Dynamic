@@ -13,7 +13,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from app.core.config import settings
 from app.ai.services.engine_service import get_shared_pg_engine
 from app.ai.services.shared_pool_service import get_shared_async_pool
+import logging
 
+logger = logging.getLogger(__name__)
 
 class CheckpointerService:
     """
@@ -46,7 +48,7 @@ class CheckpointerService:
         self._postgres_available = None
         self._initialized = True
 
-        print("[CHECKPOINTER_SERVICE] Initialized singleton CheckpointerService")
+        logger.info("[CHECKPOINTER_SERVICE] Initialized singleton CheckpointerService")
 
     async def create_checkpointer(
         self, async_mode: bool = False
@@ -61,7 +63,7 @@ class CheckpointerService:
             PostgresSaver/AsyncPostgresSaver if database available, MemorySaver as fallback
         """
 
-        print(
+        logger.info(
             f"[CHECKPOINTER_SERVICE] Creating {'async' if async_mode else 'sync'} PostgreSQL checkpointer"
         )
 
@@ -73,7 +75,7 @@ class CheckpointerService:
 
         if not checkpointer:
             # Fallback to memory checkpointer
-            print(
+            logger.info(
                 "[CHECKPOINTER_SERVICE] PostgreSQL not available, using memory checkpointer"
             )
             checkpointer = self._create_memory_checkpointer()
@@ -92,31 +94,31 @@ class CheckpointerService:
         try:
             # Check if PostgreSQL is available
             if not settings.DATABASE_URL:
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] DATABASE_URL not configured, using memory checkpointer"
                 )
                 return None
 
-            print("[CHECKPOINTER_SERVICE] Creating async PostgreSQL checkpointer")
+            logger.info("[CHECKPOINTER_SERVICE] Creating async PostgreSQL checkpointer")
 
             # Import async version
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
             # Use shared pool instead of creating new one
-            print("[CHECKPOINTER_SERVICE] Getting shared async pool...")
+            logger.info("[CHECKPOINTER_SERVICE] Getting shared async pool...")
             shared_pool = await get_shared_async_pool()
-            print(
+            logger.info(
                 "[CHECKPOINTER_SERVICE] Got shared async pool, creating AsyncPostgresSaver..."
             )
             checkpointer = AsyncPostgresSaver(shared_pool)
 
-            print(
+            logger.info(
                 "[CHECKPOINTER_SERVICE] AsyncPostgresSaver created successfully with shared pool"
             )
 
             # Setup the checkpointer (create tables) - REQUIRED by LangGraph
             try:
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] Starting AsyncPostgresSaver setup() call..."
                 )
 
@@ -124,23 +126,23 @@ class CheckpointerService:
                 import asyncio
 
                 async def setup_with_logging():
-                    print("[CHECKPOINTER_SERVICE] Calling checkpointer.setup()...")
+                    logger.info("[CHECKPOINTER_SERVICE] Calling checkpointer.setup()...")
                     await checkpointer.setup()
-                    print("[CHECKPOINTER_SERVICE] checkpointer.setup() completed")
+                    logger.info("[CHECKPOINTER_SERVICE] checkpointer.setup() completed")
 
                 # Use asyncio.wait_for with timeout
                 await asyncio.wait_for(setup_with_logging(), timeout=30.0)
 
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] AsyncPostgresSaver setup completed successfully"
                 )
             except asyncio.TimeoutError:
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] AsyncPostgresSaver setup timed out after 30 seconds"
                 )
                 # Still return the checkpointer, setup can be tried again later
             except Exception as e:
-                print(
+                logger.error(
                     f"[CHECKPOINTER_SERVICE] AsyncPostgresSaver setup failed: {str(e)}"
                 )
                 # Still return the checkpointer, setup can be tried again later
@@ -149,7 +151,7 @@ class CheckpointerService:
             return checkpointer
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHECKPOINTER_SERVICE] Async PostgreSQL checkpointer failed: {str(e)}"
             )
             self._postgres_available = False
@@ -165,7 +167,7 @@ class CheckpointerService:
         try:
             # Check if we have a valid database URL
             if not settings.DATABASE_URL:
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] DATABASE_URL not configured, using memory checkpointer"
                 )
                 return None
@@ -184,23 +186,23 @@ class CheckpointerService:
             # This is what the documentation shows: with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
             checkpointer = context_manager.__enter__()
 
-            print("[CHECKPOINTER_SERVICE] PostgresSaver created successfully")
+            logger.info("[CHECKPOINTER_SERVICE] PostgresSaver created successfully")
 
             # Setup the checkpointer (create tables) - REQUIRED by LangGraph
             try:
                 checkpointer.setup()
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] PostgresSaver setup completed successfully"
                 )
             except Exception as e:
-                print(f"[CHECKPOINTER_SERVICE] PostgresSaver setup failed: {str(e)}")
+                logger.error(f"[CHECKPOINTER_SERVICE] PostgresSaver setup failed: {str(e)}")
                 # Still return the checkpointer, setup can be tried again later
 
             self._postgres_available = True
             return checkpointer
 
         except Exception as e:
-            print(f"[CHECKPOINTER_SERVICE] PostgreSQL checkpointer failed: {str(e)}")
+            logger.error(f"[CHECKPOINTER_SERVICE] PostgreSQL checkpointer failed: {str(e)}")
             self._postgres_available = False
             return None
 
@@ -230,7 +232,7 @@ class CheckpointerService:
                 return url
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHECKPOINTER_SERVICE] Failed to get PostgreSQL connection string: {str(e)}"
             )
             # Fallback to original database URL
@@ -244,15 +246,15 @@ class CheckpointerService:
             MemorySaver instance
         """
         try:
-            print("[CHECKPOINTER_SERVICE] Creating memory checkpointer (fallback)")
+            logger.info("[CHECKPOINTER_SERVICE] Creating memory checkpointer (fallback)")
 
             checkpointer = MemorySaver()
 
-            print("[CHECKPOINTER_SERVICE] Memory checkpointer created successfully")
+            logger.info("[CHECKPOINTER_SERVICE] Memory checkpointer created successfully")
             return checkpointer
 
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHECKPOINTER_SERVICE] Failed to create memory checkpointer: {str(e)}"
             )
             raise RuntimeError(f"Cannot create any checkpointer: {str(e)}")
@@ -268,7 +270,7 @@ class CheckpointerService:
         try:
             if not settings.DATABASE_URL:
                 # MemorySaver has no persistent store to clear
-                print(
+                logger.info(
                     "[CHECKPOINTER_SERVICE] DATABASE_URL not configured. Nothing to clear."
                 )
                 return None
@@ -290,11 +292,11 @@ class CheckpointerService:
                         (thread_id,),
                     )
 
-            print(
+            logger.info(
                 f"[CHECKPOINTER_SERVICE] Deleted checkpoints for thread_id: {thread_id}"
             )
         except Exception as e:
-            print(
+            logger.error(
                 f"[CHECKPOINTER_SERVICE] Failed to delete checkpoints for thread_id {thread_id}: {str(e)}"
             )
 

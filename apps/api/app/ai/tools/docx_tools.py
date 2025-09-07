@@ -2,7 +2,9 @@ from typing import List
 from pathlib import Path
 from langchain_community.document_loaders.word_document import Docx2txtLoader
 from langchain_core.documents import Document
+import logging
 
+logger = logging.getLogger(__name__)
 
 class DOCXExtractionTool:
     """Tool for extracting text and metadata from DOCX documents."""
@@ -30,7 +32,7 @@ class DOCXExtractionTool:
         try:
             loader = Docx2txtLoader(file_path)
             documents = loader.load()
-            print(
+            logger.info(
                 f"[DOCX_EXTRACTION] Extracted {len(documents)} documents from {file_path}"
             )
 
@@ -38,7 +40,7 @@ class DOCXExtractionTool:
             source_filename = (
                 original_filename if original_filename else Path(file_path).name
             )
-            print(f"[DOCX_EXTRACTION] Source filename: {source_filename}")
+            logger.info(f"[DOCX_EXTRACTION] Source filename: {source_filename}")
 
             # Enhance metadata for each document
             for doc in documents:
@@ -54,4 +56,5 @@ class DOCXExtractionTool:
             return documents
 
         except Exception as e:
+            logger.error(f"[DOCX_EXTRACTION] Extraction failed: {str(e)}")
             raise ValueError(f"Failed to extract text from DOCX: {str(e)}")

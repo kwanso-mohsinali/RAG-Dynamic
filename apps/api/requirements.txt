@@ -33,3 +33,6 @@ psycopg-pool==3.2.6
 sqlalchemy==2.0.41
 alembic==1.14.0
 langchain-postgres==0.0.15
+unstructured[pdf]==0.15.13
+pytesseract==0.3.13
+Pillow==10.4.0

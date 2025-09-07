@@ -4,7 +4,9 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
 )
+import logging
 
+logger = logging.getLogger(__name__)
 
 class TextChunkingTool:
     """Tool for chunking documents using various strategies."""
@@ -57,13 +59,13 @@ class TextChunkingTool:
             ValueError: If chunking fails
         """
         try:
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Starting recursive character chunking of {len(documents)} documents (language: {detected_language})"
             )
 
             # Create language-specific splitter if language is detected
             if detected_language and detected_language in self.language_separators:
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Using language-specific separators for {detected_language}"
                 )
                 splitter = RecursiveCharacterTextSplitter(
@@ -74,29 +76,29 @@ class TextChunkingTool:
                     separators=self.language_separators[detected_language],
                 )
             else:
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Using default separators for unknown language: {detected_language}"
                 )
                 splitter = self.recursive_splitter
 
             # DEBUG: Log input document details
             total_input_chars = sum(len(doc.page_content) for doc in documents)
-            print(f"[CHUNKING_TOOL] Input: {total_input_chars} total characters")
+            logger.info(f"[CHUNKING_TOOL] Input: {total_input_chars} total characters")
 
             chunked_docs = splitter.split_documents(documents)
 
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Recursive splitter produced {len(chunked_docs)} chunks"
             )
 
             # DEBUG: Log output details
             if chunked_docs:
                 output_chars = sum(len(chunk.page_content) for chunk in chunked_docs)
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Output: {output_chars} total characters in chunks"
                 )
             else:
-                print(f"[CHUNKING_TOOL] Recursive splitter returned no chunks!")
+                logger.info(f"[CHUNKING_TOOL] Recursive splitter returned no chunks!")
 
             # Add chunk metadata including language information
             for i, chunk in enumerate(chunked_docs):
@@ -115,7 +117,7 @@ class TextChunkingTool:
             return chunked_docs
 
         except Exception as e:
-            print(f"[CHUNKING_TOOL] Recursive character chunking failed: {str(e)}")
+            logger.error(f"[CHUNKING_TOOL] Recursive character chunking failed: {str(e)}")
             raise ValueError(
                 f"Failed to chunk documents by recursive character splitting: {str(e)}"
             )
@@ -133,13 +135,13 @@ class TextChunkingTool:
             List of paragraph-based chunks
         """
         try:
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Starting paragraph-based chunking of {len(documents)} documents (language: {detected_language})"
             )
 
             # Create language-specific splitter if language is detected
             if detected_language and detected_language in self.language_separators:
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Using language-specific separators for {detected_language}"
                 )
                 paragraph_splitter = CharacterTextSplitter(
@@ -150,7 +152,7 @@ class TextChunkingTool:
                     separators=self.language_separators[detected_language],
                 )
             else:
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Using default separators for unknown language: {detected_language}"
                 )
                 paragraph_splitter = CharacterTextSplitter(
@@ -163,24 +165,24 @@ class TextChunkingTool:
             # DEBUG: Log input document details
             total_input_chars = sum(len(doc.page_content) for doc in documents)
             paragraph_count = sum(doc.page_content.count("\n\n") for doc in documents)
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Input: {total_input_chars} total characters, {paragraph_count} paragraph breaks"
             )
 
             chunked_docs = paragraph_splitter.split_documents(documents)
 
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Paragraph splitter produced {len(chunked_docs)} chunks"
             )
 
             # DEBUG: Log output details
             if chunked_docs:
                 output_chars = sum(len(chunk.page_content) for chunk in chunked_docs)
-                print(
+                logger.info(
                     f"[CHUNKING_TOOL] Output: {output_chars} total characters in chunks"
                 )
             else:
-                print(f"[CHUNKING_TOOL] Paragraph splitter returned no chunks!")
+                logger.info(f"[CHUNKING_TOOL] Paragraph splitter returned no chunks!")
 
             # Add chunk metadata including language information
             for i, chunk in enumerate(chunked_docs):
@@ -199,7 +201,7 @@ class TextChunkingTool:
             return chunked_docs
 
         except Exception as e:
-            print(f"[CHUNKING_TOOL] Paragraph chunking failed: {str(e)}")
+            logger.error(f"[CHUNKING_TOOL] Paragraph chunking failed: {str(e)}")
             raise ValueError(f"Failed to chunk documents by paragraphs: {str(e)}")
 
     def adaptive_chunk(
@@ -219,35 +221,35 @@ class TextChunkingTool:
         Returns:
             List of adaptively chunked documents
         """
-        print(
+        logger.info(
             f"[CHUNKING_TOOL] Adaptive chunking for content type: '{content_type}', language: '{detected_language}'"
         )
 
         # Adjust chunking strategy based on content type
         if content_type == "pdf":
             # PDFs often have better paragraph structure
-            print(f"[CHUNKING_TOOL] Using paragraph chunking for PDF")
+            logger.info(f"[CHUNKING_TOOL] Using paragraph chunking for PDF")
             return self.chunk_by_paragraphs(documents, detected_language)
         elif content_type == "docx":
             # DOCX files usually have good section breaks
-            print(f"[CHUNKING_TOOL] Using paragraph chunking for DOCX")
+            logger.info(f"[CHUNKING_TOOL] Using paragraph chunking for DOCX")
             return self.chunk_by_paragraphs(documents, detected_language)
         elif content_type == "excel":
             # Excel models have structured sections (sheets, metrics, analysis)
             # Use paragraph chunking to preserve section boundaries
-            print(f"[CHUNKING_TOOL] Using paragraph chunking for Excel")
+            logger.info(f"[CHUNKING_TOOL] Using paragraph chunking for Excel")
             return self.chunk_by_paragraphs(documents, detected_language)
         elif content_type == "text":
             # Plain text may need more aggressive splitting
-            print(f"[CHUNKING_TOOL] Using recursive character chunking for text")
+            logger.info(f"[CHUNKING_TOOL] Using recursive character chunking for text")
             return self.chunk_documents(documents, detected_language)
         elif content_type == "csv":
             # CSV files may have structured data
-            print(f"[CHUNKING_TOOL] Using paragraph chunking for CSV")
+            logger.info(f"[CHUNKING_TOOL] Using paragraph chunking for CSV")
             return self.chunk_documents(documents, detected_language)
         else:
             # Default to recursive splitting
-            print(
+            logger.info(
                 f"[CHUNKING_TOOL] Using default recursive character chunking for unknown type"
             )
             return self.chunk_documents(documents, detected_language)
