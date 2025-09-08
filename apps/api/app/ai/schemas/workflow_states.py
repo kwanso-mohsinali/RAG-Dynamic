@@ -13,10 +13,14 @@ class RAGChatState(BaseModel):
     Used for conversational RAG with persistent message history.
     """
 
-    messages: Annotated[Sequence[BaseMessage], add_messages] = Field(default_factory=list)
+    messages: Annotated[Sequence[BaseMessage], add_messages] = Field(
+        default_factory=list
+    )
     resource_id: str = Field(..., description="ID of the resource being queried")
     answer: Optional[str] = Field(default=None, description="Generated answer from RAG")
-    error_message: Optional[str] = Field(default=None, description="Error message if processing fails")
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if processing fails"
+    )
 
 
 class DocumentProcessingState(BaseModel):
@@ -35,5 +39,9 @@ class DocumentProcessingState(BaseModel):
         None, description="Detected file format (pdf, docx, image, text)"
     )
     status: str = Field(default="pending", description="Overall processing status")
-    documents: List[Document]
-    error_message: str
+    documents: List[Document] = Field(
+        default_factory=list, description="Processed documents"
+    )
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if processing fails"
+    )
