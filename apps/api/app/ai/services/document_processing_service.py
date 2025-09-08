@@ -22,7 +22,7 @@ class DocumentProcessingService:
     """
 
     async def process_document_async(
-        self, resource_id: UUID, user_id: UUID, file_path: str
+        self, resource_id: UUID, user_id: UUID, file_key: str
     ) -> Dict[str, Any]:
         """
         Process a document asynchronously using the AI workflow.
@@ -30,7 +30,7 @@ class DocumentProcessingService:
         Args:
             resource_id: ID of the resource to store the documents
             user_id: ID of the user requesting processing
-            file_path: Path to the file to process
+            file_key: Key of the file to process
 
         Returns:
             Processing result with status and metadata
@@ -41,11 +41,19 @@ class DocumentProcessingService:
         """
         try:
             if not user_id:
-                logger.error(f"[DOCUMENT_PROCESSING_SERVICE] User {user_id} not found")
-                raise ValueError(f"User {user_id} not found")
+                logger.error(f"[DOCUMENT_PROCESSING_SERVICE] User id not found")
+                raise ValueError(f"User id not found")
             
             logger.info(
-                f"[DOCUMENT_PROCESSING_SERVICE] Starting document processing for file {file_path}"
+                f"[DOCUMENT_PROCESSING_SERVICE] Fetching file {file_key}")
+            if not file_key:
+                logger.error(
+                    f"[DOCUMENT_PROCESSING_SERVICE] File key not found or not authorized")
+                raise ValueError(
+                    f"File key not found or not authorized")
+                
+            logger.info(
+                f"[DOCUMENT_PROCESSING_SERVICE] Starting document processing for file {file_key}"
             )
 
             # Create the LangGraph workflow (lazy import to avoid circular dependency)
@@ -61,13 +69,13 @@ class DocumentProcessingService:
 
             # Initialize state with all required fields
             logger.info(
-                f"[DOCUMENT_PROCESSING_SERVICE] Initializing workflow state for file {file_path}"
+                f"[DOCUMENT_PROCESSING_SERVICE] Initializing workflow state for file {file_key}"
             )
 
             # Prepare workflow input
             input_data = {
                 "resource_id": str(resource_id),
-                "file_path": file_path,
+                "file_key": file_key,
             }
 
             # Debug: Log what we're preparing
@@ -83,7 +91,7 @@ class DocumentProcessingService:
 
             # Run the LangGraph workflow directly
             logger.info(
-                f"[DOCUMENT_PROCESSING_SERVICE] Invoking LangGraph workflow for file {file_path}"
+                f"[DOCUMENT_PROCESSING_SERVICE] Invoking LangGraph workflow for file {file_key}"
             )
             final_state = workflow.invoke(validated_input)
             logger.info(
@@ -98,6 +106,7 @@ class DocumentProcessingService:
                     "resource_id": resource_id,
                     "status": "completed",
                     "message": "Document processing completed successfully",
+                    "file_type": final_state.get("file_type"),
                 }
             else:
                 # Processing failed
@@ -106,13 +115,14 @@ class DocumentProcessingService:
                     "resource_id": resource_id,
                     "status": "failed",
                     "message": final_state.get("error_message", "Document processing failed"),
+                    "file_type": final_state.get("file_type"),
                 }
 
         except Exception as e:
             raise RuntimeError(f"Document processing failed: {str(e)}")
 
     def process_document_sync(
-        self, resource_id: UUID, user_id: UUID, file_path: str
+        self, resource_id: UUID, user_id: UUID, file_key: str
     ) -> Dict[str, Any]:
         """
         Process a document synchronously (blocking).
@@ -120,9 +130,9 @@ class DocumentProcessingService:
         Args:
             resource_id: ID of the resource to store the documents
             user_id: ID of the user requesting processing
-            file_path: Path to the file to process
+            file_key: Key of the file to process
 
         Returns:
             Processing result with status and metadata
         """
-        return asyncio.run(self.process_document_async(resource_id, user_id, file_path))
+        return asyncio.run(self.process_document_async(resource_id, user_id, file_key))

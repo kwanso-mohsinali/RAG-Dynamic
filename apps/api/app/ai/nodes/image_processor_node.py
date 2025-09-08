@@ -29,7 +29,6 @@ def image_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
         return {
             **state,
             "documents": parsed_documents,
-            "file_format": "image",
             "status": "image_processed",
         }
     except Exception as e:

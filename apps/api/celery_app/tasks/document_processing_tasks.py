@@ -55,7 +55,7 @@ def force_garbage_collection():
     max_memory_per_child=300000,  # 300MB per child process
     # Removed rate_limit to allow unlimited queuing
 )
-def process_document_task(self, resource_id: str, user_id: str, file_path: str):
+def process_document_task(self, resource_id: str, user_id: str, file_key: str):
     """
     Celery task for processing documents using the AI WorkflowService.
 
@@ -78,7 +78,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
     task_id = self.request.id
 
     logger.info(f"[CELERY_TASK] Starting document processing task {task_id}")
-    logger.info(f"[CELERY_TASK] Processing file {file_path} for resource {resource_id}")
+    logger.info(f"[CELERY_TASK] Processing file {file_key} for resource {resource_id}")
 
     # Log initial memory usage
     log_memory_usage("Task Start")
@@ -88,7 +88,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
         self.update_state(
             state="PROGRESS",
             meta={
-                "file_path": file_path,
+                "file_key": file_key,
                 "progress": 0,
                 "status": "initializing",
                 "current_step": "database_connection",
@@ -105,7 +105,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
         self.update_state(
             state="PROGRESS",
             meta={
-                "file_path": file_path,
+                "file_key": file_key,
                 "progress": 10,
                 "status": "services_created",
                 "current_step": "workflow_service_initialized",
@@ -114,11 +114,11 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
         )
 
         # Process document using workflow service
-        logger.info(f"[CELERY_TASK] Invoking workflow service for file {file_path}")
+        logger.info(f"[CELERY_TASK] Invoking workflow service for file {file_key}")
         log_memory_usage("Before Workflow")
 
         result = document_processing_service.process_document_sync(
-            resource_id=UUID(resource_id), user_id=UUID(user_id), file_path=file_path
+            resource_id=UUID(resource_id), user_id=UUID(user_id), file_key=str(file_key)
         )
 
         log_memory_usage("After Workflow")
@@ -126,12 +126,12 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
 
         duration = time.time() - start_time
         logger.info(
-            f"[CELERY_TASK] Document processing completed in {duration:.2f}s for file {file_path}"
+            f"[CELERY_TASK] Document processing completed in {duration:.2f}s for file {file_key}"
         )
 
         # Return success result with structured data
         return {
-            "file_path": file_path,
+            "file_key": file_key,
             "resource_id": resource_id,
             "status": "completed",
             "result": result,
@@ -152,7 +152,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
 
         # Create a simple, serializable error response
         error_info = {
-            "file_path": file_path,
+            "file_key": file_key,
             "error": str(exc),
             "error_type": type(exc).__name__,
             "duration": duration,

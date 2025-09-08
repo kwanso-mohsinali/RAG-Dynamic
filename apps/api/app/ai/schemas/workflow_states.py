@@ -31,12 +31,15 @@ class DocumentProcessingState(BaseModel):
     and tracks the complete document processing pipeline.
     """
 
-    file_path: str = Field(..., description="Path to the file to be processed")
+    file_key: str = Field(..., description="Key of the file to be processed")
+
     resource_id: str = Field(
         ..., description="ID of the resource to store the documents"
     )
-    file_format: Optional[str] = Field(
-        None, description="Detected file format (pdf, docx, image, text)"
+
+    file_path: str = Field(..., description="Local path to the file to be processed")
+    file_type: Optional[str] = Field(
+        None, description="Detected file type (pdf, docx, image, text)"
     )
     status: str = Field(default="pending", description="Overall processing status")
     documents: List[Document] = Field(
@@ -44,4 +47,14 @@ class DocumentProcessingState(BaseModel):
     )
     error_message: Optional[str] = Field(
         default=None, description="Error message if processing fails"
+    )
+
+    file_metadata: Optional[dict] = Field(
+        None, description="File metadata"
+    )
+    is_supported_format: Optional[bool] = Field(
+        None, description="Is supported format"
+    )
+    processing_estimate: Optional[dict] = Field(
+        None, description="Processing estimate"
     )
