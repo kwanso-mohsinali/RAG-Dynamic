@@ -37,31 +37,31 @@ services:
   # ========================================
   # CELERY WORKER SERVICE
   # ========================================
-  # celery-worker:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: runtime
-  #   env_file:
-  #     - ./apps/api/.env
-  #   container_name: rag-celery-worker
-  #   volumes:
-  #     - .:/app
-  #   environment:
-  #     - DATABASE_URL=postgresql://postgres:kwanso123@db:5432/rag-dd
-  #     - CELERY_BROKER_URL=redis://redis:6379/0
-  #     - CELERY_RESULT_BACKEND=redis://redis:6379/0
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   working_dir: /app
-  #   command: |
-  #     sh -c '
-  #       celery -A celery_app.celery worker --loglevel=info --concurrency=2 --queues=document_processing --hostname=worker@%h --prefetch-multiplier=1
-  #     '
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - ./apps/api/.env
+    container_name: rag-celery-worker
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:kwanso123@db:5432/rag-dd
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    working_dir: /app/apps/api
+    command: |
+      sh -c '
+        celery -A celery_app.celery worker --loglevel=info --concurrency=2 --queues=document_processing --hostname=worker@%h --prefetch-multiplier=1
+      '
 
   # ========================================
   # REDIS SERVICE (Message Broker for Celery)
