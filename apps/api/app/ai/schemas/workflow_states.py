@@ -1,8 +1,9 @@
-from typing import Annotated, List, Sequence
+from typing import Annotated, List, Optional, Sequence
 from langchain_core.documents import Document
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
+
 
 class RAGChatState(BaseModel):
     """
@@ -11,19 +12,23 @@ class RAGChatState(BaseModel):
     Follows LangGraph documentation pattern with message history and RAG context.
     Used for conversational RAG with persistent message history.
     """
+
     messages: Annotated[Sequence[BaseMessage], add_messages]
     resource_id: str
     answer: str
     error_message: str
 
-class FileIngestionState(BaseModel):
+
+class DocumentProcessingState(BaseModel):
     """
-    State schema for file ingestion workflow.
+    State schema for document processing workflow.
+
+    This state is passed between nodes in the LangGraph workflow
+    and tracks the complete document processing pipeline.
     """
-    file_path: str
-    document_type: str
-    resource_id: str
+
+    file_path: Field(..., description="Path to the file to be processed")
+    resource_id: Field(..., description="ID of the resource to store the documents")
+    file_format: Optional[str] = Field(None, description="Detected file format (pdf, docx, image, text)")
     documents: List[Document]
     error_message: str
-    
-    

@@ -1,18 +1,18 @@
 import logging
 from typing import Dict, Any
-from app.ai.schemas.workflow_states import FileIngestionState
+from app.ai.schemas.workflow_states import DocumentProcessingState
 from apps.api.app.ai.tools.docx_tools import DOCXExtractionTool
 
 logger = logging.getLogger(__name__)
 
 
-def docx_parser_node(state: FileIngestionState) -> Dict[str, Any]:
+def docx_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
     """
     Lightweight LangGraph node container for DOCX parsing.
     This node delegates all DOCX parsing logic to the DOCXExtractionTool.
 
     Args:
-        state: FileIngestionState containing file path
+        state: DocumentProcessingState containing file path
 
     Returns:
         Updated state with DOCX parsing results
@@ -23,10 +23,12 @@ def docx_parser_node(state: FileIngestionState) -> Dict[str, Any]:
     try:
         docx_tool = DOCXExtractionTool()
         parsed_documents = docx_tool.extract_text(state.file_path)
-        logger.info(f"[DOCX_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}")
+        logger.info(
+            f"[DOCX_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}"
+        )
         return {
             "documents": parsed_documents,
-            "document_type": "docx",
+            "file_format": "docx",
         }
     except Exception as e:
         logger.error(f"[DOCX_PARSER_NODE] DOCX extraction failed: {str(e)}")
