@@ -107,16 +107,16 @@ class DocumentProcessingService:
             raise RuntimeError(f"Document processing failed: {str(e)}")
 
     def process_document_sync(
-        self, file_path: str, resource_id: UUID
+        self, resource_id: UUID, file_path: str
     ) -> Dict[str, Any]:
         """
         Process a document synchronously (blocking).
 
         Args:
-            file_path: Path to the file to process
             resource_id: ID of the resource to store the documents
+            file_path: Path to the file to process
 
         Returns:
             Processing result with status and metadata
         """
-        return asyncio.run(self.process_document_async(file_path, resource_id))
+        return asyncio.run(self.process_document_async(resource_id, file_path))

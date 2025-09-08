@@ -38,20 +38,21 @@ def force_garbage_collection():
 
         after_mb = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
         logger.info(
-            f"[GC] After GC: {after_mb:.1f}MB (freed: {before_mb - after_mb:.1f}MB)")
+            f"[GC] After GC: {after_mb:.1f}MB (freed: {before_mb - after_mb:.1f}MB)"
+        )
     except Exception as e:
         logger.warning(f"[GC] Could not perform garbage collection: {str(e)}")
 
 
 @celery_app.task(
     bind=True,
-    name='process_document_task',
     autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 3, 'countdown': 60},
+    name="process_document_task",
+    retry_kwargs={"max_retries": 3, "countdown": 60},
     retry_backoff=True,
     soft_time_limit=600,  # 10 minutes soft limit
-    time_limit=900,       # 15 minutes hard limit
-    max_memory_per_child=300000  # 300MB per child process
+    time_limit=900,  # 15 minutes hard limit
+    max_memory_per_child=300000,  # 300MB per child process
     # Removed rate_limit to allow unlimited queuing
 )
 def process_document_task(self, resource_id: str, file_path: str):
@@ -76,50 +77,47 @@ def process_document_task(self, resource_id: str, file_path: str):
     task_id = self.request.id
 
     logger.info(f"[CELERY_TASK] Starting document processing task {task_id}")
-    logger.info(
-        f"[CELERY_TASK] Processing file {file_path} for resource {resource_id}")
+    logger.info(f"[CELERY_TASK] Processing file {file_path} for resource {resource_id}")
 
     # Log initial memory usage
     log_memory_usage("Task Start")
 
-
     try:
         # Update task status with structured progress
         self.update_state(
-            state='PROGRESS',
+            state="PROGRESS",
             meta={
-                'file_path': file_path,
-                'progress': 0,
-                'status': 'initializing',
-                'current_step': 'database_connection',
-                'task_id': task_id
-            }
+                "file_path": file_path,
+                "progress": 0,
+                "status": "initializing",
+                "current_step": "database_connection",
+                "task_id": task_id,
+            },
         )
 
+  
         # Create fresh service dependencies
         document_processing_service = create_document_processing_service()
         log_memory_usage("Services Created")
 
         # Update progress to 10%
         self.update_state(
-            state='PROGRESS',
+            state="PROGRESS",
             meta={
-                'file_path': file_path,
-                'progress': 10,
-                'status': 'services_created',
-                'current_step': 'workflow_service_initialized',
-                'task_id': task_id
-            }
+                "file_path": file_path,
+                "progress": 10,
+                "status": "services_created",
+                "current_step": "workflow_service_initialized",
+                "task_id": task_id,
+            },
         )
 
         # Process document using workflow service
-        logger.info(
-            f"[CELERY_TASK] Invoking workflow service for file {file_path}")
+        logger.info(f"[CELERY_TASK] Invoking workflow service for file {file_path}")
         log_memory_usage("Before Workflow")
 
         result = document_processing_service.process_document_sync(
-            file_path=file_path,
-            resource_id=UUID(resource_id)
+            resource_id=UUID(resource_id), file_path=file_path
         )
 
         log_memory_usage("After Workflow")
@@ -127,20 +125,23 @@ def process_document_task(self, resource_id: str, file_path: str):
 
         duration = time.time() - start_time
         logger.info(
-            f"[CELERY_TASK] Document processing completed in {duration:.2f}s for file {file_path}")
+            f"[CELERY_TASK] Document processing completed in {duration:.2f}s for file {file_path}"
+        )
 
         # Return success result with structured data
         return {
-            'file_path': file_path,
-            'resource_id': resource_id,
-            'status': 'completed',
-            'result': result,
-            'duration': duration,
-            'task_id': task_id,
-            'completed_at': time.time()
+            "file_path": file_path,
+            "resource_id": resource_id,
+            "status": "completed",
+            "result": result,
+            "duration": duration,
+            "task_id": task_id,
+            "completed_at": time.time(),
         }
 
     except Exception as exc:
+        logger.error(f"[CELERY_TASK] Document processing failed: {str(exc)}")
+        
         duration = time.time() - start_time
         error_msg = f"Document processing failed after {duration:.2f}s: {str(exc)}"
         logger.error(f"[CELERY_TASK] {error_msg}")
@@ -148,24 +149,31 @@ def process_document_task(self, resource_id: str, file_path: str):
         # Force garbage collection on error
         force_garbage_collection()
 
+        # Create a simple, serializable error response
+        error_info = {
+            "file_path": file_path,
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+            "duration": duration,
+            "task_id": task_id,
+            "failed_at": time.time(),
+            "status": "failed",
+        }
+
         # Update task state to failure with detailed error info
-        self.update_state(
-            state='FAILURE',
-            meta={
-                'file_path': file_path,
-                'error': str(exc),
-                'error_type': type(exc).__name__,
-                'duration': duration,
-                'task_id': task_id,
-                'failed_at': time.time()
-            }
-        )
+        try:
+            self.update_state(state="FAILURE", meta=error_info)
+        except Exception as update_exc:
+            logger.warning(
+                f"[CELERY_TASK] Could not update task state: {str(update_exc)}"
+            )
 
-        # Re-raise the exception for Celery to handle retries
-        raise
+        # Instead of re-raising, return the error info to avoid serialization issues
+        # This prevents the KeyError: 'exc_type' issue in Celery backend
+        return error_info
 
 
-@celery_app.task(bind=True, name='health_check_task')
+@celery_app.task(bind=True, name="health_check_task")
 def health_check_task(self):
     """
     Simple health check task for monitoring Celery worker status.
@@ -173,8 +181,4 @@ def health_check_task(self):
     Returns:
         Dictionary with health status
     """
-    return {
-        'status': 'healthy',
-        'worker_id': self.request.id,
-        'timestamp': time.time()
-    }
+    return {"status": "healthy", "worker_id": self.request.id, "timestamp": time.time()}

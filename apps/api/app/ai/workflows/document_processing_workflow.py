@@ -14,13 +14,12 @@ from app.ai.nodes.docx_processor_node import docx_processor_node
 from app.ai.nodes.image_processor_node import image_processor_node
 from app.ai.nodes.chunker_node import chunker_node
 from app.ai.nodes.embedder_node import embedder_node
-from langgraph.graph import CompiledGraph
 
 
 logger = logging.getLogger(__name__)
 
 
-def create_document_processing_workflow() -> CompiledGraph:
+def create_document_processing_workflow() -> StateGraph:
     """
     Create document processing workflow for document processing functionality.
     """
@@ -128,7 +127,7 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
     return state
 
 
-def get_document_processing_workflow_instance() -> CompiledGraph:
+def get_document_processing_workflow_instance() -> StateGraph:
     """
     Get a singleton instance of the document processing workflow.
 
