@@ -57,7 +57,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    working_dir: /app
+    working_dir: /app/apps/api
     command: |
       sh -c '
         celery -A celery_app.celery worker --loglevel=info --concurrency=2 --queues=document_processing --hostname=worker@%h --prefetch-multiplier=1

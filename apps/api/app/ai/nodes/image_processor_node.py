@@ -27,12 +27,15 @@ def image_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[IMAGE_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}"
         )
         return {
+            **state,
             "documents": parsed_documents,
             "file_format": "image",
+            "status": "image_processed",
         }
     except Exception as e:
         logger.error(f"[IMAGE_PARSER_NODE] Image extraction failed: {str(e)}")
         return {
             "error_message": f"Image extraction failed: {str(e)}",
             "documents": [],
+            "status": "failed",
         }

@@ -29,6 +29,9 @@ class DocumentProcessingState(BaseModel):
 
     file_path: Field(..., description="Path to the file to be processed")
     resource_id: Field(..., description="ID of the resource to store the documents")
-    file_format: Optional[str] = Field(None, description="Detected file format (pdf, docx, image, text)")
+    file_format: Optional[str] = Field(
+        None, description="Detected file format (pdf, docx, image, text)"
+    )
+    status: str = Field(default="pending", description="Overall processing status")
     documents: List[Document]
     error_message: str

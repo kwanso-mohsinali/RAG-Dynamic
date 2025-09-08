@@ -32,7 +32,10 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
         logger.info(
             f"[STORE_DOCUMENTS_NODE] Successfully stored {len(result['document_count'])} documents in vector database"
         )
-        return state
+        return {
+            **state,
+            "status": "embeddings_stored",
+        }
     except Exception as e:
         logger.error(
             f"[STORE_DOCUMENTS_NODE] Failed to store documents in vector database: {str(e)}"
@@ -40,4 +43,5 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
         return {
             "error_message": f"Failed to store documents in vector database: {str(e)}",
             "documents": [],
+            "status": "failed",
         }

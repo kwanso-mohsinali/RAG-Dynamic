@@ -241,7 +241,6 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
                     metadata.get("source_file")
                     or metadata.get("file_name")
                     or metadata.get("original_filename")
-                    or metadata.get("attachment_id", "Unknown")
                 )
                 page = metadata.get("page") or metadata.get("page_number", "N/A")
                 chunk_index = metadata.get("chunk_index", "")

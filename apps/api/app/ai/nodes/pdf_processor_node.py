@@ -27,12 +27,15 @@ def pdf_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[PDF_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}"
         )
         return {
+            **state,
             "documents": parsed_documents,
             "file_format": "pdf",
+            "status": "pdf_processed",
         }
     except Exception as e:
         logger.error(f"[PDF_PARSER_NODE] PDF extraction failed: {str(e)}")
         return {
             "error_message": f"PDF extraction failed: {str(e)}",
             "documents": [],
+            "status": "failed",
         }

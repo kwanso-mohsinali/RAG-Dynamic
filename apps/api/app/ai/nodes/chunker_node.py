@@ -39,11 +39,14 @@ def chunker_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
 
         return {
+            **state,
             "documents": chunked_documents,
+            "status": "documents_chunked",
         }
     except Exception as e:
         logger.error(f"[CHUNKER_NODE] Text chunking failed: {str(e)}")
         return {
             "error_message": f"Text chunking failed: {str(e)}",
             "documents": [],
+            "status": "failed",
         }
