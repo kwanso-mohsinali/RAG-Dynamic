@@ -55,7 +55,7 @@ def force_garbage_collection():
     max_memory_per_child=300000,  # 300MB per child process
     # Removed rate_limit to allow unlimited queuing
 )
-def process_document_task(self, resource_id: str, file_path: str):
+def process_document_task(self, resource_id: str, user_id: str, file_path: str):
     """
     Celery task for processing documents using the AI WorkflowService.
 
@@ -68,6 +68,7 @@ def process_document_task(self, resource_id: str, file_path: str):
 
     Args:
         resource_id: Resource UUID as string
+        user_id: User UUID as string
         file_path: File path as string
 
     Returns:
@@ -117,7 +118,7 @@ def process_document_task(self, resource_id: str, file_path: str):
         log_memory_usage("Before Workflow")
 
         result = document_processing_service.process_document_sync(
-            resource_id=UUID(resource_id), file_path=file_path
+            resource_id=UUID(resource_id), user_id=UUID(user_id), file_path=file_path
         )
 
         log_memory_usage("After Workflow")

@@ -22,13 +22,14 @@ class DocumentProcessingService:
     """
 
     async def process_document_async(
-        self, resource_id: UUID, file_path: str
+        self, resource_id: UUID, user_id: UUID, file_path: str
     ) -> Dict[str, Any]:
         """
         Process a document asynchronously using the AI workflow.
 
         Args:
             resource_id: ID of the resource to store the documents
+            user_id: ID of the user requesting processing
             file_path: Path to the file to process
 
         Returns:
@@ -39,6 +40,10 @@ class DocumentProcessingService:
             RuntimeError: If workflow execution fails
         """
         try:
+            if not user_id:
+                logger.error(f"[DOCUMENT_PROCESSING_SERVICE] User {user_id} not found")
+                raise ValueError(f"User {user_id} not found")
+            
             logger.info(
                 f"[DOCUMENT_PROCESSING_SERVICE] Starting document processing for file {file_path}"
             )
@@ -107,16 +112,17 @@ class DocumentProcessingService:
             raise RuntimeError(f"Document processing failed: {str(e)}")
 
     def process_document_sync(
-        self, resource_id: UUID, file_path: str
+        self, resource_id: UUID, user_id: UUID, file_path: str
     ) -> Dict[str, Any]:
         """
         Process a document synchronously (blocking).
 
         Args:
             resource_id: ID of the resource to store the documents
+            user_id: ID of the user requesting processing
             file_path: Path to the file to process
 
         Returns:
             Processing result with status and metadata
         """
-        return asyncio.run(self.process_document_async(resource_id, file_path))
+        return asyncio.run(self.process_document_async(resource_id, user_id, file_path))

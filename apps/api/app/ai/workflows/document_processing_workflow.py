@@ -126,6 +126,8 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
 
     return state
 
+# Create a singleton workflow instance for reuse
+_workflow_instance = None
 
 def get_document_processing_workflow_instance() -> StateGraph:
     """
