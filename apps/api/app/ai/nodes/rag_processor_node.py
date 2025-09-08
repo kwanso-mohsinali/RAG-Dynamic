@@ -112,7 +112,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.info(
+        logger.error(
             f"[RAG_PROCESSOR_NODE] RAG processor node failed for resource {resource_id}: {str(e)}"
         )
 
