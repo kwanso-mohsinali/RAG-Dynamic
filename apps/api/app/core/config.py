@@ -13,17 +13,16 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "A scalable FastAPI backend"
 
     # AWS Configuration
-    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY")
+    AWS_ACCESS_KEY_ID: Optional[str] = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY: Optional[str] = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
-    AWS_BUCKET_NAME: str = os.getenv("AWS_BUCKET_NAME")
-    
+    AWS_BUCKET_NAME: Optional[str] = os.getenv("AWS_BUCKET_NAME")
+
     # API Configuration
     API_V1_STR: str = "/api/v1"
 
     # Security
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY", "your-secret-key-change-in-production")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
     # CORS - Updated for separate frontend deployment
@@ -43,13 +42,13 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = ENVIRONMENT == "development"
-    
+
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
 
     # External APIs
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
+
     # Model
     MODEL: str = os.getenv("MODEL", "gpt-4o-mini")
 
