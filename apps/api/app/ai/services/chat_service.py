@@ -8,7 +8,7 @@ persistence using LangGraph workflows.
 from typing import Dict, Any, Optional, AsyncGenerator
 from uuid import UUID
 from langchain_core.messages import HumanMessage, AIMessage
-from app.ai.workflows.rag_chat_workflow import (
+from app.ai.workflows.create_rag_chat_workflow import (
     create_rag_chat_workflow,
     validate_rag_chat_input,
     prepare_rag_chat_config,
@@ -196,7 +196,7 @@ class ChatService:
             }
 
             # Prepare config for conversation persistence
-            from workflows.rag_chat_workflow import prepare_rag_chat_config
+            from app.ai.workflows.create_rag_chat_workflow import prepare_rag_chat_config
 
             config = prepare_rag_chat_config(thread_id or "default")
 
@@ -276,7 +276,7 @@ class ChatService:
             }
 
             # Validate input
-            from workflows.rag_chat_workflow import (
+            from app.ai.workflows.create_rag_chat_workflow import (
                 validate_rag_chat_input,
                 prepare_rag_chat_config,
             )
@@ -306,7 +306,7 @@ class ChatService:
                 logger.error(f"[CHAT_SERVICE] Could not load conversation history: {str(e)}")
 
             # Step 3: Stream response using RAG chain
-            from chains.rag_chain import RAGChain
+            from app.ai.chains.rag_chain import RAGChain
 
             rag_chain = RAGChain(resource_id, self.vector_service)
 

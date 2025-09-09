@@ -68,6 +68,7 @@ class DocumentProcessingService:
             input_data = {
                 "resource_id": str(resource_id),
                 "file_path": file_path,
+                "status":"pending"
             }
 
             # Debug: Log what we're preparing

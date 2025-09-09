@@ -28,7 +28,7 @@ RUN pip install --upgrade pip==25.1.1 && \
 # ===============================
 # Runtime image
 # ===============================
-FROM base AS runtime
+FROM builder AS runtime
 WORKDIR /app
 COPY apps/api .
 

@@ -27,7 +27,6 @@ def docx_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[DOCX_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}"
         )
         return {
-            **state,
             "documents": parsed_documents,
             "file_format": "docx",
             "status": "docx_processed",

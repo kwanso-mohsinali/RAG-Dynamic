@@ -7,7 +7,6 @@ starlette==0.46.2
 python-dotenv==1.1.1
 psycopg[binary]==3.2.9
 psycopg-pool==3.2.6
-rich==13.9.4
 langchain==0.3.27
 langchain-anthropic==0.3.15
 langchain-core==0.3.75
@@ -24,8 +23,6 @@ orjson>=3.10.1
 requests-toolbelt>=1.0.0
 zstandard>=0.23.0
 psutil==7.0.0
-psycopg==3.2.9
-psycopg-pool==3.2.6
 sqlalchemy==2.0.41
 alembic==1.14.0
 langchain-postgres==0.0.15
@@ -36,10 +33,9 @@ Pillow==10.4.0
 # Celery task queue and Redis broker
 celery[redis]==5.5.3  # Distributed task queue with Redis support
 flower==2.0.1  # Web-based monitoring for Celery
-redis==6.4.0
+redis==5.2.1
 
-# Langchain & LangGraph
-langchain==0.3.26
+# Langchain & LangGraph (additional packages)
 langchain-openai==0.3.25
 langchain-community==0.3.26
 
@@ -51,7 +47,6 @@ python-docx==1.2.0 # Alternative DOCX processor
 unstructured[pdf,xlsx]==0.18.3  # Comprehensive document processing with OCR and Excel support
 
 # Vector database support
-langchain-postgres==0.0.15  # Official LangChain PGVector integration
 greenlet==3.2.3  # Required for async database operations
 
 # CLI and utilities

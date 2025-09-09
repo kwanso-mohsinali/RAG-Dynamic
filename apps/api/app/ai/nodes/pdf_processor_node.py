@@ -27,7 +27,6 @@ def pdf_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[PDF_PARSER_NODE] Extracted {len(parsed_documents)} documents from {state.file_path}"
         )
         return {
-            **state,
             "documents": parsed_documents,
             "file_format": "pdf",
             "status": "pdf_processed",

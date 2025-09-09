@@ -27,13 +27,12 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
 
         vector_service = VectorService()
-        result = vector_service.store_documents(chunked_documents, resource_id)
+        vector_service.store_documents(chunked_documents, resource_id)
 
         logger.info(
-            f"[STORE_DOCUMENTS_NODE] Successfully stored {len(result['document_count'])} documents in vector database"
+            f"[STORE_DOCUMENTS_NODE] Successfully stored documents in vector database"
         )
         return {
-            **state,
             "status": "embeddings_stored",
         }
     except Exception as e:

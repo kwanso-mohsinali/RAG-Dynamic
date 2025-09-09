@@ -13,7 +13,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.core.dependencies import get_conversation_service
+from app.core.dependencies import get_conversation_service, get_current_user_id
 from app.ai.dependencies import ChatServiceDep
 from app.services.conversation_service import ConversationService
 from app.schemas.chat import (
@@ -44,7 +44,7 @@ async def send_chat_message(
     resource_id: UUID,
     request: ChatMessageRequest,
     chat_service: ChatServiceDep,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ChatMessageResponse:
     """
@@ -69,7 +69,6 @@ async def send_chat_message(
         ai_response = await chat_service.send_message(
             resource_id=resource_id,
             message=request.message,
-            user_id=user_id,
             thread_id=conversation.thread_id,
         )
 
@@ -107,7 +106,7 @@ async def stream_chat_message(
     resource_id: UUID,
     request: ChatMessageRequest,
     chat_service: ChatServiceDep,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> StreamingResponse:
     """
@@ -143,7 +142,6 @@ async def stream_chat_message(
                 async for chunk in chat_service.stream_message(
                     resource_id=resource_id,
                     message=request.message,
-                    user_id=user_id,
                     thread_id=conversation.thread_id,
                 ):
                     chunk_count += 1
@@ -217,7 +215,7 @@ async def stream_chat_message(
 )
 async def list_conversations(
     resource_id: UUID,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationListResponse:
     """
@@ -254,7 +252,7 @@ async def list_conversations(
 async def get_conversation_history(
     conversation_id: UUID,
     chat_service: ChatServiceDep,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationHistoryResponse:
     """
@@ -273,7 +271,6 @@ async def get_conversation_history(
         message_history = await chat_service.get_conversation_history(
             resource_id=conversation_metadata["resource_id"],
             thread_id=conversation_metadata["thread_id"],
-            user_id=user_id,
         )
 
         # Convert to ConversationMessage format
@@ -311,7 +308,7 @@ async def get_conversation_history(
 )
 async def deactivate_conversation(
     conversation_id: UUID,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationDeactivateResponse:
     """
@@ -353,7 +350,7 @@ async def deactivate_conversation(
     description="Get list of all conversations for the current user across all resources.",
 )
 async def list_all_conversations(
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationListResponse:
     """
@@ -387,7 +384,7 @@ async def list_all_conversations(
 )
 async def get_resource_chat_stats(
     resource_id: UUID,
-    user_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
 ) -> ResourceChatStatsResponse:
     """
