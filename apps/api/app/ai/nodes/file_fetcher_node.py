@@ -31,7 +31,6 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
         if not file_key:
             logger.error(f"[FILE_FETCHER_NODE] No file key provided")
             return {
-                **state,
                 "status": "failed",
                 "error_message": "No file key provided",
             }
@@ -73,7 +72,6 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[FILE_FETCHER_NODE] File fetch completed successfully for file {file_key}"
         )
         return {
-            **state,
             "status": "file_fetched",
             "file_path": local_path,
             "file_key": file_key,
@@ -89,7 +87,6 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
             exc_info=True,
         )
         return {
-            **state,
             "status": "failed",
             "error_message": f"File fetching failed: {str(e)}",
         }

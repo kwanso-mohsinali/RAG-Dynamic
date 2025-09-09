@@ -32,29 +32,25 @@ class DocumentProcessingState(BaseModel):
     """
 
     file_key: str = Field(..., description="Key of the file to be processed")
-
     resource_id: str = Field(
         ..., description="ID of the resource to store the documents"
     )
-
-    file_path: str = Field(..., description="Local path to the file to be processed")
+    status: str = Field(default="pending", description="Overall processing status")
+    
+    file_path: Optional[str] = Field(None, description="Local path to the file to be processed")
     file_type: Optional[str] = Field(
         None, description="Detected file type (pdf, docx, image, text)"
     )
-    status: str = Field(default="pending", description="Overall processing status")
-    documents: List[Document] = Field(
+    documents: Optional[List[Document]] = Field(
         default_factory=list, description="Processed documents"
     )
+    embeddings_stored: Optional[int] = Field(
+        default=0, description="Number of embeddings stored"
+    )
+    storage_metadata: Optional[dict] = Field(None, description="Storage metadata")
     error_message: Optional[str] = Field(
         default=None, description="Error message if processing fails"
     )
-
-    file_metadata: Optional[dict] = Field(
-        None, description="File metadata"
-    )
-    is_supported_format: Optional[bool] = Field(
-        None, description="Is supported format"
-    )
-    processing_estimate: Optional[dict] = Field(
-        None, description="Processing estimate"
-    )
+    file_metadata: Optional[dict] = Field(None, description="File metadata")
+    is_supported_format: Optional[bool] = Field(None, description="Is supported format")
+    processing_estimate: Optional[dict] = Field(None, description="Processing estimate")

@@ -34,6 +34,5 @@ def image_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
         logger.error(f"[IMAGE_PARSER_NODE] Image extraction failed: {str(e)}")
         return {
             "error_message": f"Image extraction failed: {str(e)}",
-            "documents": [],
             "status": "failed",
         }

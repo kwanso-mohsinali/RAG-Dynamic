@@ -1,9 +1,10 @@
-from typing import List
+from typing import Any, Dict, List
 from langchain_openai import OpenAIEmbeddings
 from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class EmbeddingGenerationTool:
     """Tool for generating embeddings using OpenAI models."""
@@ -85,3 +86,53 @@ class EmbeddingGenerationTool:
         }
 
         return model_dimensions.get(self.model, 1536)
+
+
+class EmbeddingAnalysisTool:
+    """Tool for analyzing and validating embeddings."""
+
+    def __init__(self):
+        """Initialize the embedding analysis tool."""
+        pass
+
+    def analyze_embedding_quality(self, embedding: List[float]) -> Dict[str, Any]:
+        """
+        Analyze the quality of an embedding vector.
+
+        Args:
+            embedding: Embedding vector to analyze
+
+        Returns:
+            Analysis results
+        """
+        try:
+            dimension = len(embedding)
+            magnitude = sum(x * x for x in embedding) ** 0.5
+            mean_value = sum(embedding) / dimension
+            variance = sum((x - mean_value) ** 2 for x in embedding) / dimension
+
+            return {
+                "dimension": dimension,
+                "magnitude": magnitude,
+                "mean": mean_value,
+                "variance": variance,
+                "quality_score": min(1.0, magnitude / dimension**0.5),
+            }
+
+        except Exception as e:
+            return {"error": f"Failed to analyze embedding: {str(e)}"}
+
+    def validate_embedding_dimension(
+        self, embedding: List[float], expected_dimension: int
+    ) -> bool:
+        """
+        Validate that an embedding has the expected dimension.
+
+        Args:
+            embedding: Embedding vector to validate
+            expected_dimension: Expected dimension
+
+        Returns:
+            True if dimension matches, False otherwise
+        """
+        return len(embedding) == expected_dimension
