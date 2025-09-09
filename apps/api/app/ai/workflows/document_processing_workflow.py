@@ -8,7 +8,6 @@ that define the graph structure and return compiled applications.
 import logging
 from typing import Dict, Any
 from langgraph.graph import StateGraph, END
-from app.ai.schemas.workflow_states import DocumentProcessingState
 from app.ai.nodes.pdf_processor_node import pdf_processor_node
 from app.ai.nodes.docx_processor_node import docx_processor_node
 from app.ai.nodes.image_processor_node import image_processor_node
@@ -26,8 +25,9 @@ def create_document_processing_workflow() -> StateGraph:
 
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Creating document processing workflow")
 
-    # Create workflow with proper state schema
-    workflow = StateGraph(DocumentProcessingState)
+    # Create the state graph with dict for flexibility while maintaining validation
+    # We'll validate state using DocumentProcessingState schema in the service layer
+    workflow = StateGraph(dict)
 
     # Add nodes
     workflow.add_node("file_fetcher", file_fetcher_node)
@@ -82,7 +82,7 @@ def create_document_processing_workflow() -> StateGraph:
 
 
 def route_after_analysis(
-    state: DocumentProcessingState,
+    state: Dict[str, Any],
 ) -> str:
     """
     Route to the appropriate processor based on document analysis.
@@ -96,18 +96,19 @@ def route_after_analysis(
     Returns:
         Next node name
     """
-
-    logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file {state.file_path}: status={state.status}"
-    )
-
     status = state.get("status", "pending")
+    file_path = state.get("file_path")
+    file_type = state.get("file_type", "unknown")
     is_supported_format = state.get("is_supported_format", False)
+    
+    logger.info(
+        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file {file_path}: status={status}"
+    )
 
     # If there's an error or unsupported file, go to error handler
     if status == "failed" or not is_supported_format:
         logger.info(
-            f"[DOCUMENT_PROCESSING_WORKFLOW] Routing to error_handler for file {state.file_path} (status={status})"
+            f"[DOCUMENT_PROCESSING_WORKFLOW] Routing to error_handler for file {file_path} (status={status})"
         )
         return "error_handler"
 
@@ -118,9 +119,9 @@ def route_after_analysis(
         "image": "image_processor",
     }
 
-    next_node = route_mapping.get(state.file_type, "error_handler")
+    next_node = route_mapping.get(file_type, "error_handler")
     logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing file {state.file_path} with file type '{state.file_type}' to node '{next_node}'"
+        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing file {file_path} with file type '{file_type}' to node '{next_node}'"
     )
 
     return next_node
@@ -166,9 +167,9 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         # Work directly with state dictionary instead of creating Pydantic object
-        error_message = state.get("error_message") or "Unknown processing error"
+        error_message = state.get("error_message", "Unknown processing error")
         is_supported_format = state.get("is_supported_format", False)
-        file_format = state.get("file_type")
+        file_format = state.get("file_type", "unknown")
 
         # Create appropriate error response
         if not is_supported_format:
@@ -211,8 +212,9 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Validating input data: {input_data}")
 
     # Extract required fields
-    file_key = input_data.get("file_key", "")
-    resource_id = input_data.get("resource_id")
+    file_key = input_data.get("file_key", "") 
+    resource_id = input_data.get("resource_id", "")
+    status = input_data.get("status", "pending")
 
     if not file_key:
         raise ValueError("File key is required")
@@ -224,7 +226,7 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
     state = {
         "file_key": file_key,
         "resource_id": str(resource_id),
-        "status":"pending"
+        "status":status
     }
 
     logger.info(

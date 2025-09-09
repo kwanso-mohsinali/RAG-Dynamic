@@ -3,6 +3,7 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
+from uuid import UUID
 
 
 class RAGChatState(BaseModel):
@@ -32,7 +33,7 @@ class DocumentProcessingState(BaseModel):
     """
 
     file_key: str = Field(..., description="Key of the file to be processed")
-    resource_id: str = Field(
+    resource_id: UUID = Field(
         ..., description="ID of the resource to store the documents"
     )
     status: str = Field(default="pending", description="Overall processing status")

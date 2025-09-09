@@ -4,6 +4,7 @@ from fastapi import Depends, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.dependencies import get_db
 from app.services.conversation_service import ConversationService
+from apps.api.app.core.config import settings
 
 
 async def get_current_user_id(request: Request) -> UUID:
@@ -28,6 +29,13 @@ async def get_current_user_id(request: Request) -> UUID:
 
         # Extract user_id from body
         user_id = body.get("user_id")
+        secret_key = body.get("secret_key", "")
+
+        if secret_key != settings.SECRET_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or Missing Secret Key",
+            )
 
         if not user_id:
             raise HTTPException(

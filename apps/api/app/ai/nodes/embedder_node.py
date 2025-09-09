@@ -1,12 +1,11 @@
 import logging
 from typing import Dict, Any
-from app.ai.schemas.workflow_states import DocumentProcessingState
 from apps.api.app.ai.chains.embedding_chain import EmbeddingChain
 
 logger = logging.getLogger(__name__)
 
 
-def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
+def embedder_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Lightweight LangGraph node container for storing documents in vector database.
     This node delegates all storing documents logic to the VectorService.
@@ -20,9 +19,9 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
     logger.info(f"[EMBEDDER_NODE] Starting storing documents in vector database")
 
     try:
-        chunks = state.documents or []
-        file_path = state.file_path or "unknown"
-        resource_id = state.resource_id or "unknown"
+        chunks = state.get("documents", [])
+        file_path = state.get("file_path", "unknown")
+        resource_id = state.get("resource_id", "unknown")
         logger.info(
             f"[EMBEDDER_NODE] Processing {len(chunks)} chunks for file {resource_id}"
         )
@@ -46,19 +45,20 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
             logger.info(
                 f"[EMBEDDER_NODE] Embedding completed successfully for file {file_path}"
             )
-            # logger.info(
-            #     f"[EMBEDDER_NODE] Stored {chain_result['embeddings_stored']} embeddings in collection {chain_result['collection_name']}"
-            # )
+            logger.info(
+                f"[EMBEDDER_NODE] Stored {chain_result['embeddings_stored']} embeddings in collection {chain_result['collection_name']}"
+            )
             return {
+                **state,
                 "status": "embeddings_stored",
                 "embeddings_stored": chain_result["embeddings_stored"],
-                "storage_metadata": chain_result["storage_metadata"],
             }
         else:
             logger.error(
                 f"[EMBEDDER_NODE] Embedding failed for file {file_path}: {chain_result['error']}"
             )
             return {
+                **state,
                 "status": "failed",
                 "error_message": f"Embedding failed: {chain_result['error']}",
                 "embeddings_stored": 0,
@@ -68,6 +68,7 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[EMBEDDER_NODE] Failed to store documents in vector database: {str(e)}"
         )
         return {
+            **state,
             "error_message": f"Failed to store documents in vector database: {str(e)}",
             "status": "failed",
             "embeddings_stored": 0,
