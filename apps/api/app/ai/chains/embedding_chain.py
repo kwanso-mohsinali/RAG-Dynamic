@@ -44,13 +44,13 @@ class EmbeddingChain:
         Returns:
             Updated state with embedding results
         """
-        file_path = state.get('file_path', 'unknown')
-        resource_id = state.get('resource_id', 'unknown')
+        file_path = state.file_path or 'unknown'
+        resource_id = state.resource_id or 'unknown'
         logger.info(
             f"[EMBEDDING_CHAIN] Starting embedding processing for file {file_path}, resource {resource_id}")
 
         try:
-            chunks = state.get('documents', [])
+            chunks = state.documents or []
 
             logger.info(
                 f"[EMBEDDING_CHAIN] Processing {len(chunks)} documents for embedding")
@@ -75,9 +75,8 @@ class EmbeddingChain:
             # Enhance chunk metadata with resource and file info
             logger.info(
                 f"[EMBEDDING_CHAIN] Enhancing chunk metadata for file {file_path}")
-            original_filename = state.get('original_filename', 'unknown')
             enhanced_chunks = self._enhance_chunk_metadata(
-                chunks, resource_id, original_filename)
+                chunks, resource_id)
 
             # Store documents in vector database using VectorService (with proper table tracking)
             logger.info(
@@ -87,10 +86,10 @@ class EmbeddingChain:
 
             if not storage_result['success']:
                 logger.error(
-                    f"[EMBEDDING_CHAIN] Failed to store embeddings for file {file_path}: {storage_result.get('error', 'Unknown error')}")
+                    f"[EMBEDDING_CHAIN] Failed to store embeddings for file {file_path}: {storage_result['error'] or 'Unknown error'}")
                 return {
                     'success': False,
-                    'error': f"Failed to store documents in vector database: {storage_result.get('error', 'Unknown error')}",
+                    'error': f"Failed to store documents in vector database: {storage_result['error'] or 'Unknown error'}",
                     'embeddings_stored': 0
                 }
 
@@ -116,10 +115,10 @@ class EmbeddingChain:
             return {
                 'success': True,
                 'embeddings_stored': storage_result['document_count'],
-                'document_ids': storage_result.get('document_ids', []),
+                'document_ids': storage_result['document_ids'],
                 'embedding_analysis': embedding_analysis,
                 'storage_metadata': {
-                    'embedding_model': storage_result.get('embedding_model', 'unknown'),
+                    'embedding_model': storage_result['embedding_model'],
                     'total_chunks': len(enhanced_chunks),
                     'resource_id': resource_id,
                     'file_path': file_path,
@@ -140,7 +139,6 @@ class EmbeddingChain:
         self,
         chunks: List[Document],
         resource_id: Optional[str] = None,
-        original_filename: Optional[str] = None
     ) -> List[Document]:
         """
         Enhance chunk metadata with project and attachment information.
@@ -148,7 +146,6 @@ class EmbeddingChain:
         Args:
             chunks: List of document chunks
             resource_id: Resource identifier
-            original_filename: Original filename of the document
 
         Returns:
             Enhanced chunks with additional metadata
@@ -166,9 +163,7 @@ class EmbeddingChain:
             enhanced_metadata = {
                 **sanitized_metadata,
                 'resource_id': resource_id_str,
-                'original_filename': original_filename or 'unknown',
-                'source_file': original_filename or 'unknown',  # For backward compatibility
-                'chunk_id': f"{resource_id_str}_{chunk.metadata.get('chunk_index', 0)}",
+                'chunk_id': f"{resource_id_str}_{chunk.metadata['chunk_index'] or 0}",
                 'embedding_timestamp': str(int(__import__('time').time()))
             }
 
