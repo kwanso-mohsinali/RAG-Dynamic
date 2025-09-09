@@ -23,8 +23,13 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
     """
     logger.info(f"[FILE_FETCHER_NODE] Starting file fetching process")
     try:
+        
+        print(f"[FILE_FETCHER_NODE] State: {state}")
+        
         # Extract required state
-        file_key = state.get("file_key")
+        file_key = state.file_key
+        
+        
 
         logger.info(f"[FILE_FETCHER_NODE] File key: {file_key}")
 

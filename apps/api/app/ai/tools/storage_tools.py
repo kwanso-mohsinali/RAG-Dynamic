@@ -29,12 +29,12 @@ class FileStorageTool:
         """Initialize with self-contained storage service."""
         self.storage_service = StorageService()
 
-    def download_from_gcs(self, gcs_path: str) -> str:
+    def download_from_s3(self, file_key: str) -> str:
         """
-        Download file from Google Cloud Storage to local temporary file.
+        Download file from S3 to local temporary file.
 
         Args:
-            gcs_path: GCS blob path (e.g., "projects/123/attachments/file.pdf")
+            file_key: S3 file key
 
         Returns:
             Local file path of downloaded file
@@ -42,11 +42,11 @@ class FileStorageTool:
         Raises:
             RuntimeError: If download fails
         """
-        logger.info(f"[FILE_STORAGE_TOOL] Downloading file from GCS: {gcs_path}")
+        logger.info(f"[FILE_STORAGE_TOOL] Downloading file from S3: {file_key}")
 
         try:
             # Create temporary file with proper extension
-            file_extension = Path(gcs_path).suffix
+            file_extension = Path(file_key).suffix
             temp_file = tempfile.NamedTemporaryFile(
                 delete=False,
                 suffix=file_extension,
@@ -58,14 +58,14 @@ class FileStorageTool:
             logger.info(f"[FILE_STORAGE_TOOL] Created temporary file: {temp_path}")
 
             # Download using storage service (returns local path on success)
-            downloaded_path = self.storage_service.download_file(gcs_path, temp_path)
+            downloaded_path = self.storage_service.download_file(file_key, temp_path)
 
             if not downloaded_path or downloaded_path != temp_path:
-                logger.error(f"[FILE_STORAGE_TOOL] Failed to download {gcs_path}")
+                logger.error(f"[FILE_STORAGE_TOOL] Failed to download {file_key}")
                 # Clean up temp file on failure
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                raise RuntimeError(f"Failed to download file from GCS: {gcs_path}")
+                raise RuntimeError(f"Failed to download file from S3: {file_key}")
 
             # Verify file was downloaded
             if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
@@ -74,7 +74,7 @@ class FileStorageTool:
                 )
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                raise RuntimeError(f"Downloaded file is empty or missing: {gcs_path}")
+                raise RuntimeError(f"Downloaded file is empty or missing: {file_key}")
 
             file_size = os.path.getsize(temp_path)
             logger.info(
@@ -84,7 +84,7 @@ class FileStorageTool:
 
         except Exception as e:
             logger.error(
-                f"[FILE_STORAGE_TOOL] Download failed for {gcs_path}: {str(e)}",
+                f"[FILE_STORAGE_TOOL] Download failed for {file_key}: {str(e)}",
                 exc_info=True,
             )
             raise RuntimeError(f"File download failed: {str(e)}")
