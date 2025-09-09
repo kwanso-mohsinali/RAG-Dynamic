@@ -91,7 +91,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
                 "file_path": file_path,
                 "progress": 0,
                 "status": "initializing",
-                "current_step": "database_connection",
+                "current_step": "initializing_document_processing_service",
                 "task_id": task_id,
             },
         )
@@ -108,7 +108,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_path: str):
                 "file_path": file_path,
                 "progress": 10,
                 "status": "services_created",
-                "current_step": "workflow_service_initialized",
+                "current_step": "document_processing_service_initialized",
                 "task_id": task_id,
             },
         )

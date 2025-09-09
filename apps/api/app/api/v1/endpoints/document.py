@@ -10,8 +10,9 @@ import glob
 import os
 from typing import Any
 from uuid import UUID
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from apps.api.app.core.dependencies import get_current_user_id
 from celery_app.tasks.document_processing_tasks import process_document_task
 
 logger = logging.getLogger(__name__)
@@ -20,21 +21,21 @@ router = APIRouter()
 
 class UploadFileRequest(BaseModel):
     resource_id: UUID
-    user_id: UUID
 
 @router.post("/upload", response_model=Any)
 async def upload_file(
     request: UploadFileRequest,
+    user_id: UUID = Depends(get_current_user_id),
 ):
     """
     Upload a file and create a document record.
     """
 
     print(f"[DOCUMENT_ENDPOINT] Resource ID: {request.resource_id}")
-    print(f"[DOCUMENT_ENDPOINT] User ID: {request.user_id}")
+    print(f"[DOCUMENT_ENDPOINT] User ID: {user_id}")
 
     # Auto-trigger document processing for resource documents
-    if request.resource_id and request.user_id:
+    if request.resource_id:
         # Get the knowledge base folder path
         current_dir = os.path.dirname(os.path.abspath(__file__))
         knowledge_base_folder = os.path.join(current_dir, "knowledge_base")
@@ -53,7 +54,7 @@ async def upload_file(
             )
 
             # Queue Celery task instead of background task
-            process_document_task.delay(str(request.resource_id), str(request.user_id), str(file_path))
+            process_document_task.delay(str(request.resource_id), str(user_id), str(file_path))
         else:
             print(f"[DOCUMENT_ENDPOINT] No PDF files found in {knowledge_base_folder}")
             return {"message": "No PDF files found in knowledge base folder"}

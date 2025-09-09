@@ -1,7 +1,7 @@
 # ===============================
 # Base image
 # ===============================
-FROM --platform=linux/amd64 python:3.13.5-slim AS builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     tesseract-ocr \
     tesseract-ocr-script-latn \
-    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libreoffice \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -27,7 +29,7 @@ RUN pip install --upgrade pip==25.1.1 && \
 # ===============================
 # Runtime image
 # ===============================
-FROM base AS runtime
+FROM builder AS runtime
 WORKDIR /app
 COPY apps/api .
 
