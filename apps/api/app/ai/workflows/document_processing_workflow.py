@@ -101,8 +101,8 @@ def route_after_analysis(
         f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file {state.file_path}: status={state.status}"
     )
 
-    status = state.get("status", "pending")
-    is_supported_format = state.get("is_supported_format", False)
+    status = state.status or "pending"
+    is_supported_format = state.is_supported_format or False
 
     # If there's an error or unsupported file, go to error handler
     if status == "failed" or not is_supported_format:
@@ -136,8 +136,8 @@ def check_file_fetcher_status(state: Dict[str, Any]) -> str:
     Returns:
         Next node name based on file fetcher status
     """
-    status = state.get("status", "pending")
-    file_path = state.get("file_path")
+    status = state.status or "pending"
+    file_path = state.file_path
     
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] File path from file fetcher: {file_path}")
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Status from file fetcher: {status}")
@@ -166,9 +166,9 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         # Work directly with state dictionary instead of creating Pydantic object
-        error_message = state.get("error_message") or "Unknown processing error"
-        is_supported_format = state.get("is_supported_format", False)
-        file_format = state.get("file_type")
+        error_message = state.error_message or "Unknown processing error"
+        is_supported_format = state.is_supported_format or False
+        file_format = state.file_type or "unknown"
 
         # Create appropriate error response
         if not is_supported_format:
@@ -211,8 +211,8 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Validating input data: {input_data}")
 
     # Extract required fields
-    file_key = input_data.get("file_key", "")
-    resource_id = input_data.get("resource_id")
+    file_key = input_data.get("file_key", "") 
+    resource_id = input_data.get("resource_id", "")
 
     if not file_key:
         raise ValueError("File key is required")
