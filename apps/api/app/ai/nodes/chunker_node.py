@@ -39,7 +39,6 @@ def chunker_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
 
         return {
-            **state,
             "documents": chunked_documents,
             "status": "documents_chunked",
         }

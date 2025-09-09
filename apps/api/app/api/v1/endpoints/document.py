@@ -8,8 +8,9 @@ with streaming support and conversation management.
 import logging
 from typing import Any
 from uuid import UUID
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from apps.api.app.core.dependencies import get_current_user_id
 from celery_app.tasks.document_processing_tasks import process_document_task
 
 logger = logging.getLogger(__name__)
@@ -19,25 +20,25 @@ router = APIRouter()
 class UploadFileRequest(BaseModel):
     resource_id: UUID
     file_key: str
-    user_id: UUID
 
 @router.post("/upload", response_model=Any)
 async def upload_file(
     request: UploadFileRequest,
+    user_id: UUID = Depends(get_current_user_id),
 ):
     """
     Upload a file and create a document record.
     """
 
     print(f"[DOCUMENT_ENDPOINT] Resource ID: {request.resource_id}")
-    print(f"[DOCUMENT_ENDPOINT] User ID: {request.user_id}")
+    print(f"[DOCUMENT_ENDPOINT] User ID: {user_id}")
     print(f"[DOCUMENT_ENDPOINT] File Key: {request.file_key}")
 
     # Auto-trigger document processing for resource documents
-    if request.resource_id and request.user_id:
+    if request.resource_id:
         if request.file_key:
             # Queue Celery task instead of background task
-            process_document_task.delay(str(request.resource_id), str(request.user_id), str(request.file_key))
+            process_document_task.delay(str(request.resource_id), str(user_id), str(request.file_key))
             return {"message": "Document processing queued"}
         else:
             print(f"[DOCUMENT_ENDPOINT] No File Key found")

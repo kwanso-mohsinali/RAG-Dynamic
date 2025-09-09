@@ -226,6 +226,7 @@ def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, 
     state = {
         "file_key": file_key,
         "resource_id": str(resource_id),
+        "status":"pending"
     }
 
     logger.info(
