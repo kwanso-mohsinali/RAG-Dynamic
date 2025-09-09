@@ -20,9 +20,9 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
     logger.info(f"[EMBEDDER_NODE] Starting storing documents in vector database")
 
     try:
-        chunks = state.get("documents", [])
-        file_path = state.get("file_path", "unknown")
-        resource_id = state.get("resource_id", "unknown")
+        chunks = state.documents or []
+        file_path = state.file_path or "unknown"
+        resource_id = state.resource_id or "unknown"
         logger.info(
             f"[EMBEDDER_NODE] Processing {len(chunks)} chunks for file {resource_id}"
         )
@@ -39,14 +39,16 @@ def embedder_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
         chain_result = embedding_chain.process(state)
 
+        logger.info(f"[EMBEDDER_NODE] Chain result: {chain_result}")
+        
         # Convert chain result to state updates
         if chain_result["success"]:
             logger.info(
                 f"[EMBEDDER_NODE] Embedding completed successfully for file {file_path}"
             )
-            logger.info(
-                f"[EMBEDDER_NODE] Stored {chain_result['embeddings_stored']} embeddings in collection {chain_result['collection_name']}"
-            )
+            # logger.info(
+            #     f"[EMBEDDER_NODE] Stored {chain_result['embeddings_stored']} embeddings in collection {chain_result['collection_name']}"
+            # )
             return {
                 "status": "embeddings_stored",
                 "embeddings_stored": chain_result["embeddings_stored"],

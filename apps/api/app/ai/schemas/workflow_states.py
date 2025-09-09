@@ -42,6 +42,13 @@ class DocumentProcessingState(BaseModel):
     documents: List[Document] = Field(
         default_factory=list, description="Processed documents"
     )
+    embeddings_stored: Optional[int] = Field(
+        default=0, description="Number of embeddings stored"
+    )
+    storage_metadata: Optional[dict] = Field(None, description="Storage metadata")
     error_message: Optional[str] = Field(
         default=None, description="Error message if processing fails"
     )
+    file_metadata: Optional[dict] = Field(None, description="File metadata")
+    is_supported_format: Optional[bool] = Field(None, description="Is supported format")
+    processing_estimate: Optional[dict] = Field(None, description="Processing estimate")
