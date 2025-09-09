@@ -34,6 +34,5 @@ def pdf_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
         logger.error(f"[PDF_PARSER_NODE] PDF extraction failed: {str(e)}")
         return {
             "error_message": f"PDF extraction failed: {str(e)}",
-            "documents": [],
             "status": "failed",
         }

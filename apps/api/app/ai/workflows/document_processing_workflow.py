@@ -180,7 +180,6 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
         # Update state for final result
         updated_state = {
-            **state,
             "status": final_status,
             "error_message": final_message,
         }
@@ -189,7 +188,6 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         return {
-            **state,
             "status": "failed",
             "error_message": f"Error handler failed: {str(e)}",
         }
