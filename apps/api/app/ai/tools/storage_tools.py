@@ -16,25 +16,25 @@ from app.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
+
 class FileStorageTool:
     """
     Tool for file storage operations.
 
-    Handles AWS S3 file downloads and local file management.
+    Creates its own storage service instance instead of receiving it through state.
     This follows proper tool patterns and avoids service coupling in workflows.
     """
 
     def __init__(self):
         """Initialize with self-contained storage service."""
         self.storage_service = StorageService()
-        
-    def download_from_s3(self, file_key: str) -> str:
+
+    def download_from_gcs(self, gcs_path: str) -> str:
         """
-        Download file from AWS S3 to local temporary file.
+        Download file from Google Cloud Storage to local temporary file.
 
         Args:
-            file_key: S3 object key (e.g., "documents/file.pdf")
-            bucket_name: S3 bucket name (optional, uses default from env if not provided)
+            gcs_path: GCS blob path (e.g., "projects/123/attachments/file.pdf")
 
         Returns:
             Local file path of downloaded file
@@ -42,11 +42,11 @@ class FileStorageTool:
         Raises:
             RuntimeError: If download fails
         """
-        logger.info(f"[FILE_STORAGE_TOOL] Downloading file from S3: {file_key}")
+        logger.info(f"[FILE_STORAGE_TOOL] Downloading file from GCS: {gcs_path}")
 
         try:
             # Create temporary file with proper extension
-            file_extension = Path(file_key).suffix
+            file_extension = Path(gcs_path).suffix
             temp_file = tempfile.NamedTemporaryFile(
                 delete=False,
                 suffix=file_extension,
@@ -58,34 +58,33 @@ class FileStorageTool:
             logger.info(f"[FILE_STORAGE_TOOL] Created temporary file: {temp_path}")
 
             # Download using storage service (returns local path on success)
-            downloaded_path = self.storage_service.download_file(file_key, temp_path)
+            downloaded_path = self.storage_service.download_file(gcs_path, temp_path)
 
-           # Move the downloaded file to our temp path with proper naming
             if not downloaded_path or downloaded_path != temp_path:
-                logger.error(
-                    f"[FILE_STORAGE_TOOL] Failed to download {file_key}")
+                logger.error(f"[FILE_STORAGE_TOOL] Failed to download {gcs_path}")
                 # Clean up temp file on failure
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                raise RuntimeError(
-                    f"Failed to download file from S3: {file_key}")
+                raise RuntimeError(f"Failed to download file from GCS: {gcs_path}")
 
             # Verify file was downloaded
             if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
                 logger.error(
-                    f"[FILE_STORAGE_TOOL] Downloaded file is empty or missing: {temp_path}")
+                    f"[FILE_STORAGE_TOOL] Downloaded file is empty or missing: {temp_path}"
+                )
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                raise RuntimeError(
-                    f"Downloaded file is empty or missing: {file_key}")
+                raise RuntimeError(f"Downloaded file is empty or missing: {gcs_path}")
 
             file_size = os.path.getsize(temp_path)
             logger.info(
-                f"[FILE_STORAGE_TOOL] Successfully downloaded {file_size} bytes to {temp_path}")
+                f"[FILE_STORAGE_TOOL] Successfully downloaded {file_size} bytes to {temp_path}"
+            )
             return temp_path
+
         except Exception as e:
             logger.error(
-                f"[FILE_STORAGE_TOOL] Download failed for {file_key}: {str(e)}",
+                f"[FILE_STORAGE_TOOL] Download failed for {gcs_path}: {str(e)}",
                 exc_info=True,
             )
             raise RuntimeError(f"File download failed: {str(e)}")
@@ -123,6 +122,7 @@ class FileMetadataTool:
         "application/msword": "doc",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
         "application/vnd.ms-excel": "xls",
+        "text/csv": "csv",  # Added CSV support
         "text/plain": "txt",
         "text/markdown": "md",
         "image/jpeg": "jpg",
@@ -190,6 +190,7 @@ class FileMetadataTool:
                 ".doc": "doc",
                 ".xlsx": "xlsx",
                 ".xls": "xls",
+                ".csv": "csv",  # Added CSV extension mapping
                 ".txt": "txt",
                 ".md": "md",
                 ".jpg": "jpg",
@@ -227,7 +228,19 @@ class FileMetadataTool:
             True if format is supported, False otherwise
         """
         file_type = self.detect_file_type(file_path)
-        supported = file_type in ["pdf", "docx", "doc", "jpg", "png"]
+        supported = file_type in [
+            "pdf",
+            "docx",
+            "doc",
+            "xlsx",
+            "xls",
+            "csv",
+            "txt",
+            "md",
+            "jpg",
+            "png",
+            "tiff",
+        ]
         logger.info(
             f"[FILE_METADATA_TOOL] File format supported: {supported} (type: {file_type})"
         )
@@ -252,8 +265,11 @@ class FileMetadataTool:
                 "pdf": 2.0,  # 2 seconds per MB
                 "docx": 1.5,  # 1.5 seconds per MB
                 "doc": 1.5,
-                "xlsx": 3.0,  # 3 seconds per MB (complex financial analysis)
-                "xls": 3.5,  # 3.5 seconds per MB (legacy format overhead)                'txt': 0.5,      # 0.5 seconds per MB
+                # 3 seconds per MB (complex financial analysis)
+                "xlsx": 3.0,
+                "xls": 3.5,  # 3.5 seconds per MB (legacy format overhead)
+                "csv": 2.5,  # 2.5 seconds per MB (tabular data analysis)
+                "txt": 0.5,  # 0.5 seconds per MB
                 "md": 0.5,
                 "jpg": 3.0,  # 3 seconds per MB (OCR)
                 "png": 3.0,
