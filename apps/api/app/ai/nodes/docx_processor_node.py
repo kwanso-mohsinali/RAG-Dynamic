@@ -28,7 +28,6 @@ def docx_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
         return {
             "documents": parsed_documents,
-            "file_format": "docx",
             "status": "docx_processed",
             "current_step": "docx_processed",
         }

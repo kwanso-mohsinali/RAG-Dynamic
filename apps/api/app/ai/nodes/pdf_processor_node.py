@@ -28,7 +28,6 @@ def pdf_processor_node(state: DocumentProcessingState) -> Dict[str, Any]:
         )
         return {
             "documents": parsed_documents,
-            "file_format": "pdf",
             "status": "pdf_processed",
         }
     except Exception as e:

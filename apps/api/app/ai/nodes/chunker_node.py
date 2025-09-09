@@ -23,7 +23,7 @@ def chunker_node(state: DocumentProcessingState) -> Dict[str, Any]:
     )
     try:
         filtered_documents = filter_complex_metadata(state.documents)
-        content_type = state.file_format
+        content_type = state.file_type
 
         logger.info(
             f"[CHUNKER_NODE] Chunking {len(filtered_documents)} documents for {content_type} content"

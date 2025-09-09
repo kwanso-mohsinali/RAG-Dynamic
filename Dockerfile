@@ -1,7 +1,7 @@
 # ===============================
 # Base image
 # ===============================
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim AS base
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -29,7 +29,7 @@ RUN pip install --upgrade pip==25.1.1 && \
 # ===============================
 # Runtime image
 # ===============================
-FROM builder AS runtime
+FROM base AS runtime
 WORKDIR /app
 COPY apps/api .
 
