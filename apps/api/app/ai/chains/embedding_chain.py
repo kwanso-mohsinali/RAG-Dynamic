@@ -6,10 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from langchain_core.documents import Document
 
-from app.ai.tools.embedding_tools import (
-    EmbeddingGenerationTool,
-    EmbeddingAnalysisTool
-)
+from app.ai.tools.embedding_tools import EmbeddingGenerationTool, EmbeddingAnalysisTool
 from app.ai.services.vector_service import VectorService
 
 logger = logging.getLogger(__name__)
@@ -44,101 +41,113 @@ class EmbeddingChain:
         Returns:
             Updated state with embedding results
         """
-        file_path = state.file_path or 'unknown'
-        resource_id = state.resource_id or 'unknown'
+        file_path = state.get("file_path", "unknown")
+        resource_id = state.get("resource_id", "unknown")
         logger.info(
-            f"[EMBEDDING_CHAIN] Starting embedding processing for file {file_path}, resource {resource_id}")
+            f"[EMBEDDING_CHAIN] Starting embedding processing for file {file_path}, resource {resource_id}"
+        )
 
         try:
-            chunks = state.documents or []
+            print(f"[EMBEDDING_CHAIN] State: {state}")
+            chunks = state.get("documents", [])
 
             logger.info(
-                f"[EMBEDDING_CHAIN] Processing {len(chunks)} documents for embedding")
+                f"[EMBEDDING_CHAIN] Processing {len(chunks)} documents for embedding"
+            )
 
             if not chunks:
                 logger.error(
-                    f"[EMBEDDING_CHAIN] No chunks provided for embedding file {file_path}")
+                    f"[EMBEDDING_CHAIN] No chunks provided for embedding file {file_path}"
+                )
                 return {
-                    'success': False,
-                    'error': 'No chunks provided for embedding',
-                    'embeddings_stored': 0
+                    "success": False,
+                    "error": "No chunks provided for embedding",
+                    "embeddings_stored": 0,
                 }
 
             if not file_path:
                 logger.error(f"[EMBEDDING_CHAIN] No file_path provided")
                 return {
-                    'success': False,
-                    'error': 'No file_path provided',
-                    'embeddings_stored': 0
+                    "success": False,
+                    "error": "No file_path provided",
+                    "embeddings_stored": 0,
                 }
 
             # Enhance chunk metadata with resource and file info
             logger.info(
-                f"[EMBEDDING_CHAIN] Enhancing chunk metadata for file {file_path}")
+                f"[EMBEDDING_CHAIN] Enhancing chunk metadata for file {file_path}"
+            )
+            original_filename = state.get("file_metadata", {}).get("file_name", "unknown")
             enhanced_chunks = self._enhance_chunk_metadata(
-                chunks, resource_id)
+                chunks, resource_id, original_filename
+            )
 
             # Store documents in vector database using VectorService (with proper table tracking)
             logger.info(
-                f"[EMBEDDING_CHAIN] Storing {len(enhanced_chunks)} documents in vector database via VectorService")
+                f"[EMBEDDING_CHAIN] Storing {len(enhanced_chunks)} documents in vector database via VectorService"
+            )
             storage_result = self.vector_service.store_documents(
-                enhanced_chunks, resource_id)
+                enhanced_chunks, resource_id
+            )
 
-            if not storage_result['success']:
+            if not storage_result["success"]:
                 logger.error(
-                    f"[EMBEDDING_CHAIN] Failed to store embeddings for file {file_path}: {storage_result['error'] or 'Unknown error'}")
+                    f"[EMBEDDING_CHAIN] Failed to store embeddings for file {file_path}: {storage_result['error'] or 'Unknown error'}"
+                )
                 return {
-                    'success': False,
-                    'error': f"Failed to store documents in vector database: {storage_result['error'] or 'Unknown error'}",
-                    'embeddings_stored': 0
+                    "success": False,
+                    "error": f"Failed to store documents in vector database: {storage_result['error'] or 'Unknown error'}",
+                    "embeddings_stored": 0,
                 }
 
             logger.info(
-                f"[EMBEDDING_CHAIN] Successfully stored {storage_result['document_count']} embeddings")
+                f"[EMBEDDING_CHAIN] Successfully stored {storage_result['document_count']} embeddings"
+            )
 
             # TOOL USAGE: Generate embeddings for analysis (sample)
             logger.info(
-                f"[EMBEDDING_CHAIN] Generating sample embeddings for analysis using EmbeddingGenerationTool")
-            sample_texts = [
-                chunk.page_content for chunk in enhanced_chunks[:5]]
-            sample_embeddings = self.embedding_tool.generate_embeddings(
-                sample_texts)
+                f"[EMBEDDING_CHAIN] Generating sample embeddings for analysis using EmbeddingGenerationTool"
+            )
+            sample_texts = [chunk.page_content for chunk in enhanced_chunks[:5]]
+            sample_embeddings = self.embedding_tool.generate_embeddings(sample_texts)
 
             # TOOL USAGE: Analyze embedding quality
             logger.info(
-                f"[EMBEDDING_CHAIN] Analyzing embedding quality using EmbeddingAnalysisTool")
+                f"[EMBEDDING_CHAIN] Analyzing embedding quality using EmbeddingAnalysisTool"
+            )
             embedding_analysis = self.analysis_tool.analyze_embedding_quality(
-                sample_embeddings)
+                sample_embeddings
+            )
 
             logger.info(
-                f"[EMBEDDING_CHAIN] Embedding processing completed for file {file_path}")
+                f"[EMBEDDING_CHAIN] Embedding processing completed for file {file_path}"
+            )
             return {
-                'success': True,
-                'embeddings_stored': storage_result['document_count'],
-                'document_ids': storage_result['document_ids'],
-                'embedding_analysis': embedding_analysis,
-                'storage_metadata': {
-                    'embedding_model': storage_result['embedding_model'],
-                    'total_chunks': len(enhanced_chunks),
-                    'resource_id': resource_id,
-                    'file_path': file_path,
-                    'collection_name': storage_result['collection_name']
-                }
+                "success": True,
+                "embeddings_stored": storage_result.get("document_count", 0),
+                "document_ids": storage_result.get("document_ids", []),
+                "embedding_analysis": embedding_analysis,
+                "collection_name": storage_result.get("collection_name", "unknown"),
+                "storage_metadata": {
+                    "embedding_model": storage_result.get("embedding_model", "unknown"),
+                    "total_chunks": len(enhanced_chunks),
+                    "resource_id": resource_id,
+                    "file_path": file_path,
+                },
             }
 
         except Exception as e:
             logger.error(
-                f"[EMBEDDING_CHAIN] Embedding processing failed for file {file_path}: {str(e)}", exc_info=True)
-            return {
-                'success': False,
-                'error': str(e),
-                'embeddings_stored': 0
-            }
+                f"[EMBEDDING_CHAIN] Embedding processing failed for file {file_path}: {str(e)}",
+                exc_info=True,
+            )
+            return {"success": False, "error": str(e), "embeddings_stored": 0}
 
     def _enhance_chunk_metadata(
         self,
         chunks: List[Document],
         resource_id: Optional[str] = None,
+        original_filename: Optional[str] = None,
     ) -> List[Document]:
         """
         Enhance chunk metadata with project and attachment information.
@@ -146,6 +155,7 @@ class EmbeddingChain:
         Args:
             chunks: List of document chunks
             resource_id: Resource identifier
+            original_filename: Original filename of the document
 
         Returns:
             Enhanced chunks with additional metadata
@@ -162,14 +172,16 @@ class EmbeddingChain:
             # Create a copy of the chunk with enhanced metadata
             enhanced_metadata = {
                 **sanitized_metadata,
-                'resource_id': resource_id_str,
-                'chunk_id': f"{resource_id_str}_{chunk.metadata['chunk_index'] or 0}",
-                'embedding_timestamp': str(int(__import__('time').time()))
+                "resource_id": resource_id_str,
+                "original_filename": original_filename or "unknown",
+                "source_file": original_filename
+                or "unknown",  # For backward compatibility
+                "chunk_id": f"{original_filename}_{chunk.metadata.get('chunk_index', 0)}",
+                "embedding_timestamp": str(int(__import__("time").time())),
             }
 
             enhanced_chunk = Document(
-                page_content=chunk.page_content,
-                metadata=enhanced_metadata
+                page_content=chunk.page_content, metadata=enhanced_metadata
             )
             enhanced_chunks.append(enhanced_chunk)
 
@@ -189,7 +201,7 @@ class EmbeddingChain:
         for key, value in metadata.items():
             if value is None:
                 sanitized[key] = None
-            elif hasattr(value, '__str__'):
+            elif hasattr(value, "__str__"):
                 # Convert UUID objects and other non-serializable types to strings
                 sanitized[key] = str(value)
             else:

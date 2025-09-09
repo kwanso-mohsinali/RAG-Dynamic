@@ -1,5 +1,4 @@
 from typing import Dict, Any
-from app.ai.schemas.workflow_states import DocumentProcessingState
 from app.ai.tools.storage_tools import FileStorageTool, FileMetadataTool
 import gc
 import logging
@@ -8,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
+def file_fetcher_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Lightweight LangGraph node container for file fetching.
 
@@ -24,13 +23,9 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
     logger.info(f"[FILE_FETCHER_NODE] Starting file fetching process")
     try:
         
-        print(f"[FILE_FETCHER_NODE] State: {state}")
-        
         # Extract required state
-        file_key = state.file_key
+        file_key = state.get("file_key")
         
-        
-
         logger.info(f"[FILE_FETCHER_NODE] File key: {file_key}")
 
         if not file_key:
@@ -77,6 +72,7 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
             f"[FILE_FETCHER_NODE] File fetch completed successfully for file {file_key}"
         )
         return {
+            **state,
             "status": "file_fetched",
             "file_path": local_path,
             "file_key": file_key,
@@ -92,6 +88,7 @@ def file_fetcher_node(state: DocumentProcessingState) -> Dict[str, Any]:
             exc_info=True,
         )
         return {
+            **state,
             "status": "failed",
             "error_message": f"File fetching failed: {str(e)}",
         }

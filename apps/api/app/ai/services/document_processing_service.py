@@ -10,6 +10,8 @@ from typing import Dict, Any
 from uuid import UUID
 import asyncio
 
+from apps.api.app.ai.schemas.workflow_states import DocumentProcessingState
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,16 +75,20 @@ class DocumentProcessingService:
             )
 
             # Prepare workflow input
-            input_data = {
-                "resource_id": str(resource_id),
-                "file_key": file_key,
-            }
+            initial_state = DocumentProcessingState(
+                resource_id=resource_id,
+                file_key=file_key,
+                status="pending",
+            )
+
+            # Convert to dict and add only data (no service instances)
+            state_dict = initial_state.model_dump()
 
             # Debug: Log what we're preparing
-            logger.info(f"[DOCUMENT_PROCESSING_SERVICE] Input data: {input_data}")
+            logger.info(f"[DOCUMENT_PROCESSING_SERVICE] Input data: {state_dict}")
 
             # Validate input
-            validated_input = validate_document_processing_input(input_data)
+            validated_input = validate_document_processing_input(state_dict)
 
             # Debug: Log what we're passing to the workflow
             logger.info(
