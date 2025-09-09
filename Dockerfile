@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-script-latn \
     libgl1-mesa-glx \
+    libreoffice \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
