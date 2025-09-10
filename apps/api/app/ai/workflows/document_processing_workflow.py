@@ -13,6 +13,7 @@ from app.ai.nodes.docx_processor_node import docx_processor_node
 from app.ai.nodes.image_processor_node import image_processor_node
 from app.ai.nodes.chunker_node import chunker_node
 from app.ai.nodes.embedder_node import embedder_node
+from app.ai.nodes.document_router_node import document_router_node
 from app.ai.nodes.file_fetcher_node import file_fetcher_node
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def create_document_processing_workflow() -> StateGraph:
 
     # Add nodes
     workflow.add_node("file_fetcher", file_fetcher_node)
-    workflow.add_node("document_router", lambda state: state)
+    workflow.add_node("document_router", document_router_node)
     workflow.add_node("pdf_processor", pdf_processor_node)
     workflow.add_node("docx_processor", docx_processor_node)
     workflow.add_node("image_processor", image_processor_node)
@@ -98,17 +99,16 @@ def route_after_analysis(
     """
     status = state.get("status", "pending")
     file_path = state.get("file_path")
-    file_type = state.get("file_type", "unknown")
-    is_supported_format = state.get("is_supported_format", False)
+    processing_route = state.get("processing_route", "unsupported")
 
     logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file type={file_type} (status={status})"
+        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for processing_route={processing_route} (status={status})"
     )
 
     # If there's an error or unsupported file, go to error handler
-    if status == "failed" or not is_supported_format:
+    if status == "failed" or processing_route == "unsupported":
         logger.info(
-            f"[DOCUMENT_PROCESSING_WORKFLOW] Routing to error_handler for file {file_path} (status={status})"
+            f"[DOCUMENT_PROCESSING_WORKFLOW] Routing to error_handler for route {processing_route} (status={status})"
         )
         return "error_handler"
 
@@ -119,9 +119,9 @@ def route_after_analysis(
         "image": "image_processor",
     }
 
-    next_node = route_mapping.get(file_type, "error_handler")
+    next_node = route_mapping.get(processing_route, "error_handler")
     logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing file {file_path} with file type '{file_type}' to node '{next_node}'"
+        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing file {file_path} with route '{processing_route}' to node '{next_node}'"
     )
 
     return next_node
@@ -183,6 +183,7 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
         # Update state for final result
         updated_state = {
+            **state,
             "status": final_status,
             "error_message": final_message,
         }
@@ -191,6 +192,7 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         return {
+            **state,
             "status": "failed",
             "error_message": f"Error handler failed: {str(e)}",
         }

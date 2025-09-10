@@ -101,7 +101,7 @@ def process_document_task(self, resource_id: str, user_id: str, file_key: str):
         document_processing_service = create_document_processing_service()
         log_memory_usage("Services Created")
 
-        # Update progress to 10%
+        # Update progress
         self.update_state(
             state="PROGRESS",
             meta={

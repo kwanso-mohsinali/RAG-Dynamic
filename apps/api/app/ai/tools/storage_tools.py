@@ -232,14 +232,14 @@ class FileMetadataTool:
             "pdf",
             "docx",
             "doc",
-            "xlsx",
-            "xls",
-            "csv",
-            "txt",
-            "md",
             "jpg",
             "png",
-            "tiff",
+            # "xlsx",
+            # "xls",
+            # "csv",
+            # "txt",
+            # "md",
+            # "tiff",
         ]
         logger.info(
             f"[FILE_METADATA_TOOL] File format supported: {supported} (type: {file_type})"
