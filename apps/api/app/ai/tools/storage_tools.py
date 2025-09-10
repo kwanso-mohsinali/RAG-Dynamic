@@ -190,7 +190,7 @@ class FileMetadataTool:
                 ".doc": "doc",
                 ".xlsx": "xlsx",
                 ".xls": "xls",
-                ".csv": "csv",  # Added CSV extension mapping
+                ".csv": "csv",
                 ".txt": "txt",
                 ".md": "md",
                 ".jpg": "jpg",

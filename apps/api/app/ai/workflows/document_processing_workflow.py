@@ -65,10 +65,10 @@ def create_document_processing_workflow() -> StateGraph:
     workflow.add_edge("pdf_processor", "chunker")
     workflow.add_edge("docx_processor", "chunker")
     workflow.add_edge("image_processor", "chunker")
-    
+
     # Chunker goes to embedder
     workflow.add_edge("chunker", "embedder")
-    
+
     # Final Steps
     workflow.add_edge("embedder", END)
     workflow.add_edge("error_handler", END)
@@ -100,9 +100,9 @@ def route_after_analysis(
     file_path = state.get("file_path")
     file_type = state.get("file_type", "unknown")
     is_supported_format = state.get("is_supported_format", False)
-    
+
     logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file {file_path}: status={status}"
+        f"[DOCUMENT_PROCESSING_WORKFLOW] Routing decision for file type={file_type} (status={status})"
     )
 
     # If there's an error or unsupported file, go to error handler
@@ -139,8 +139,10 @@ def check_file_fetcher_status(state: Dict[str, Any]) -> str:
     """
     status = state.get("status", "pending")
     file_path = state.get("file_path")
-    
-    logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] File path from file fetcher: {file_path}")
+
+    logger.info(
+        f"[DOCUMENT_PROCESSING_WORKFLOW] File path from file fetcher: {file_path}"
+    )
     logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Status from file fetcher: {status}")
 
     # If file fetching failed or no file path was set, go to error handler
@@ -192,48 +194,6 @@ def error_handler_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "status": "failed",
             "error_message": f"Error handler failed: {str(e)}",
         }
-
-
-def validate_document_processing_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Validate and prepare input for document processing workflow.
-
-    This function prepares the input for LangGraph.
-
-    Args:
-        input_data: Raw input data
-
-    Returns:
-        Validated and formatted state dict
-
-    Raises:
-        ValueError: If input validation fails
-    """
-    logger.info(f"[DOCUMENT_PROCESSING_WORKFLOW] Validating input data: {input_data}")
-
-    # Extract required fields
-    file_key = input_data.get("file_key", "") 
-    resource_id = input_data.get("resource_id", "")
-    status = input_data.get("status", "pending")
-
-    if not file_key:
-        raise ValueError("File key is required")
-
-    if not resource_id:
-        raise ValueError("Resource ID is required")
-
-    # Prepare state with current file path
-    state = {
-        "file_key": file_key,
-        "resource_id": str(resource_id),
-        "status":status
-    }
-
-    logger.info(
-        f"[DOCUMENT_PROCESSING_WORKFLOW] Prepared input state with file key: {file_key} and resource ID: {resource_id}"
-    )
-
-    return state
 
 
 # Create a singleton workflow instance for reuse
