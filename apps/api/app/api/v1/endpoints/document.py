@@ -70,8 +70,8 @@ async def ingest_file(
             logger.error(f"[DOCUMENT_ENDPOINT] Resource ID is missing")
             return IngestFileResponse(message="Resource ID is missing", status="error")
     except Exception as e:
-        logger.error(f"[DOCUMENT_ENDPOINT] Error uploading file: {str(e)}")
+        logger.error(f"[DOCUMENT_ENDPOINT] Error ingesting file: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload file",
+            detail="Failed to ingest file",
         )
