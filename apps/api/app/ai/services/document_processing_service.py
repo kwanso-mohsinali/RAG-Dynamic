@@ -64,7 +64,6 @@ class DocumentProcessingService:
             )
             from app.ai.workflows.document_processing_workflow import (
                 create_document_processing_workflow,
-                validate_document_processing_input,
             )
 
             workflow = create_document_processing_workflow()
@@ -87,19 +86,11 @@ class DocumentProcessingService:
             # Debug: Log what we're preparing
             logger.info(f"[DOCUMENT_PROCESSING_SERVICE] Input data: {state_dict}")
 
-            # Validate input
-            validated_input = validate_document_processing_input(state_dict)
-
-            # Debug: Log what we're passing to the workflow
-            logger.info(
-                f"[DOCUMENT_PROCESSING_SERVICE] Validated input: {validated_input}"
-            )
-
             # Run the LangGraph workflow directly
             logger.info(
                 f"[DOCUMENT_PROCESSING_SERVICE] Invoking LangGraph workflow for file {file_key}"
             )
-            final_state = workflow.invoke(validated_input)
+            final_state = workflow.invoke(state_dict)
             logger.info(
                 f"[DOCUMENT_PROCESSING_SERVICE] Workflow completed with status: {final_state.get('status')}"
             )

@@ -31,6 +31,7 @@ def file_fetcher_node(state: Dict[str, Any]) -> Dict[str, Any]:
         if not file_key:
             logger.error(f"[FILE_FETCHER_NODE] No file key provided")
             return {
+                **state,
                 "status": "failed",
                 "error_message": "No file key provided",
             }

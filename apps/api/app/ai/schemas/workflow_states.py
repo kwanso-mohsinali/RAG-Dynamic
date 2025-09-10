@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional, Sequence
+from typing import Annotated, List, Literal, Optional, Sequence
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
@@ -37,11 +37,19 @@ class DocumentProcessingState(BaseModel):
         ..., description="ID of the resource to store the documents"
     )
     status: str = Field(default="pending", description="Overall processing status")
-    
-    file_path: Optional[str] = Field(None, description="Local path to the file to be processed")
-    file_type: Optional[str] = Field(
-        None, description="Detected file type (pdf, docx, image, text)"
+
+    file_path: Optional[str] = Field(
+        None, description="Local path to the file to be processed"
     )
+    file_type: Optional[str] = Field(
+        None,
+        description="Detected file type (pdf, docx, jpg, png, txt, md, csv, xlsx, xls)",
+    )
+
+    processing_route: Optional[
+        Literal["pdf", "docx", "excel", "image", "text", "unsupported"]
+    ] = Field(None, description="Router decision on which processor to use")
+
     documents: Optional[List[Document]] = Field(
         default_factory=list, description="Processed documents"
     )
