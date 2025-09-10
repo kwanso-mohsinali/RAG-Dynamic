@@ -6,7 +6,6 @@ and sets up task routing and concurrency controls following Celery 5.5.3 best pr
 """
 
 # Load environment variables FIRST, before any other imports
-from app.core.config import settings
 from celery import Celery
 import os
 from dotenv import load_dotenv

@@ -48,7 +48,6 @@ class EmbeddingChain:
         )
 
         try:
-            print(f"[EMBEDDING_CHAIN] State: {state}")
             chunks = state.get("documents", [])
 
             logger.info(
