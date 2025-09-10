@@ -14,7 +14,7 @@ This project follows a microservices architecture with the following components:
 
 ## 🚀 Features
 
-- **Document Upload & Processing**: Upload documents to S3 and process them asynchronously
+- **Document Ingestion & Processing**: Download documents from S3 and ingest them asynchronously
 - **Vector Storage**: Store and search document embeddings using PostgreSQL pgvector
 - **File Download**: Secure file download functionality from S3
 - **Scalable Processing**: Background task processing with Celery
