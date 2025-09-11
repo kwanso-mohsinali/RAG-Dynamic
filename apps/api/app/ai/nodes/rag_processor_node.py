@@ -91,7 +91,8 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         )
 
         # Extract results
-        answer = chain_result
+        answer = chain_result.get("answer", "")
+        context = chain_result.get("context", "")
 
         # Create AI response message
         ai_message = {"role": "assistant", "content": answer}
@@ -108,6 +109,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         return {
             # ← add_messages will append this automatically
             "messages": [ai_message],
+            "context": context,
             "answer": answer,
         }
 
@@ -306,6 +308,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         return {
             # This will be appended to existing messages
             "messages": [ai_message],
+            "context": context,
             "answer": answer,
         }
 

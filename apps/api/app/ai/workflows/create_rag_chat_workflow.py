@@ -107,6 +107,7 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         # This will be appended to existing messages
         "messages": [human_message],
         "resource_id": str(resource_id),
+        "context": "", # Initialize empty context 
         "answer": "",  # Initialize empty answer
     }
 
