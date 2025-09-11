@@ -58,16 +58,10 @@ class RAGChain:
             ]
         )
 
-        # Build the chain using proper retrieval and formatting
-        def retrieve_and_format(query: str) -> str:
-            """Retrieve documents and format them for context."""
-            docs = self.retriever.invoke(query)
-            return self._format_docs(docs)
-
         rag_chain = (
             RunnableParallel(
                 {
-                    "context": lambda x: retrieve_and_format(x["input"]),
+                    "context": lambda x: x["context"],
                     "chat_history": lambda x: x.get("chat_history", []),
                     "input": lambda x: x["input"],
                 }
@@ -135,18 +129,27 @@ class RAGChain:
             user_input = input_data.get("input", "")
             chat_history = input_data.get("chat_history", [])
 
+            # Retrieve relevant documents
+            relevant_docs = self.retriever.invoke(user_input)
+
+            # Format context
+            context = self._format_docs(relevant_docs)
+
             # Prepare chain input
             chain_input = {
+                "context": context,
                 "chat_history": chat_history,
-                "input": user_input,
+                "input": user_input
             }
 
             # Generate response (pass callbacks for tracking)
             config = {"callbacks": callbacks} if callbacks else None
             answer = self.chain.invoke(chain_input, config=config)
 
-            return answer
-
+            return {
+                "answer": answer,
+                "context": context,
+            }
         except Exception as e:
             logger.error(f"[RAG_CHAIN] Error processing query: {str(e)}")
             raise

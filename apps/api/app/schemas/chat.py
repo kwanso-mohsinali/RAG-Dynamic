@@ -23,6 +23,7 @@ class ChatMessageResponse(BaseModel):
     """Response schema for chat message."""
 
     answer: str = Field(..., description="AI assistant's response")
+    context: str = Field(..., description="Retrieved document context")
     conversation_id: UUID = Field(..., description="Conversation ID")
     thread_id: str = Field(..., description="LangGraph thread ID")
     message_count: int = Field(...,
@@ -33,6 +34,7 @@ class ChatStreamChunk(BaseModel):
     """Schema for streaming chat response chunks."""
 
     content: str = Field(..., description="Chunk of the response")
+    context: str = Field(..., description="Retrieved document context")
     conversation_id: UUID = Field(..., description="Conversation ID")
     thread_id: str = Field(..., description="LangGraph thread ID")
     is_final: bool = Field(..., description="Whether this is the final chunk")

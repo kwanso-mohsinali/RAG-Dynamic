@@ -91,7 +91,7 @@ class ChatService:
             thread_id: Optional thread ID for conversation persistence
 
         Returns:
-            AI response with context and sources
+            AI response with context
 
         Raises:
             RuntimeError: If processing fails
@@ -125,8 +125,10 @@ class ChatService:
             # Execute workflow
             logger.info(f"[CHAT_SERVICE] Executing async workflow for resource {resource_id}")
             result = await workflow.ainvoke(validated_input, config=config)
+            
             # Extract response
             answer = result.get("answer", "")
+            context = result.get("context", "")
             messages = result.get("messages", [])
 
             # Get AI message from result
@@ -147,6 +149,7 @@ class ChatService:
 
             return {
                 "answer": answer,
+                "context": context,
                 "thread_id": thread_id or "default",
                 "resource_id": str(resource_id),
             }
@@ -180,7 +183,6 @@ class ChatService:
             RuntimeError: If processing fails
         """
         try:
-
             logger.info(
                 f"[CHAT_SERVICE] Processing non-streaming message for resource {resource_id}, thread {thread_id}"
             )
@@ -224,6 +226,7 @@ class ChatService:
 
             return {
                 "content": response,
+                "context": "",
                 "thread_id": thread_id or "default",
                 "conversation_state": result,
             }
@@ -319,6 +322,7 @@ class ChatService:
 
             # Stream directly from the RAG chain with timeout protection
             chunk_count = 0
+            context = ""
             start_time = asyncio.get_event_loop().time()
             timeout_seconds = 60
             source_documents = []
@@ -338,6 +342,7 @@ class ChatService:
 
                     # Extract content and context from chunk
                     content = chunk.get("answer", "")
+                    context = chunk.get("context", "")
                     source_docs = chunk.get("source_documents", [])
 
                     if content:
@@ -346,6 +351,7 @@ class ChatService:
 
                         yield {
                             "content": content,
+                            "context": context,
                             "thread_id": thread_id or "default",
                             "is_final": False,
                         }
@@ -358,6 +364,7 @@ class ChatService:
                 logger.error(f"[CHAT_SERVICE] Streaming timeout for resource {resource_id}")
                 yield {
                     "content": "Streaming timeout - response incomplete",
+                    "context": "",
                     "thread_id": thread_id or "default",
                     "is_final": True,
                 }
@@ -390,12 +397,15 @@ class ChatService:
                     logger.error(f"[CHAT_SERVICE] Could not update workflow state: {str(e)}")
                     # Don't fail the streaming if workflow update fails
 
-            # Send final chunk
+            # Send final chunk with full context
             final_chunk = {
                 "content": "",
+                "context": context,
                 "thread_id": thread_id or "default",
                 "is_final": True,
             }
+
+            logger.info(f"[CHAT_SERVICE] Yielding final chunk...")
             yield final_chunk
 
         except Exception as e:
