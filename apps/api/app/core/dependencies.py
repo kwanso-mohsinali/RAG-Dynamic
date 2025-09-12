@@ -7,12 +7,43 @@ from app.services.conversation_service import ConversationService
 from apps.api.app.core.config import settings
 
 
-async def get_current_user_id(request: Request) -> UUID:
-    """
-    Extract current user ID from request body.
+def get_secret_key(request: Request) -> str:
+    """Get the secret key from the Authorization header."""
+    
+    # Extract secret key from Authorization header
+    authorization = request.headers.get("authorization")
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header is required",
+        )
 
-    This dependency reads the request body and extracts the user_id field.
-    Can be used with any endpoint that includes user_id in the request body.
+    # Check if it's a Bearer token
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header must be a Bearer token",
+        )
+    
+    # Extract the secret key from Bearer token
+    secret_key = authorization.split(' ')[1]
+    
+    # Validate the secret key
+    if not secret_key or secret_key != settings.SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or Missing Secret Key",
+        )
+    
+    return secret_key
+
+
+async def get_current_user_id(request: Request, secret_key: str = Depends(get_secret_key)) -> UUID:
+    """
+    Extract current user ID from request body and validate secret key from Authorization header.
+
+    This dependency reads the request body and extracts the user_id field,
+    while validating the secret key from the Authorization Bearer token.
 
     Args:
         request: FastAPI Request object
@@ -29,13 +60,6 @@ async def get_current_user_id(request: Request) -> UUID:
 
         # Extract user_id from body
         user_id = body.get("user_id")
-        secret_key = body.get("secret_key", "")
-
-        if secret_key != settings.SECRET_KEY:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or Missing Secret Key",
-            )
 
         if not user_id:
             raise HTTPException(
