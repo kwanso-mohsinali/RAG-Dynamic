@@ -211,6 +211,61 @@ async def stream_chat_message(
 
 
 @router.get(
+    "/resources/{resource_id}/chat/history",
+    response_model=ConversationHistoryResponse,
+    summary="Get conversation history for a resource",
+    description="Get conversation history for the current user in this resource.",
+)
+async def get_resource_chat_history(
+    resource_id: UUID,
+    chat_service: ChatServiceDep,
+    user_id: UUID = Depends(get_current_user_id),
+    conversation_service: ConversationService = Depends(get_conversation_service),
+) -> ConversationHistoryResponse:
+    """
+    Get conversation history for the current user in this resource.
+    """
+    try:
+        # First, get conversation metadata and verify access
+        conversation = conversation_service.get_or_create_conversation(
+            resource_id=resource_id, user_id=user_id
+        )
+        
+        # Then get the actual message history from the AI service
+        message_history = await chat_service.get_conversation_history(
+            resource_id=conversation.resource_id,
+            thread_id=conversation.thread_id,
+        )
+
+        # Convert to ConversationMessage format
+        messages = [
+            ConversationMessage(
+                role=msg.get("role", "unknown"),
+                content=msg.get("content", ""),
+                timestamp=msg.get("timestamp") or datetime.utcnow(),
+                metadata=None,
+            )
+            for msg in message_history  # message_history is already a list
+        ]
+
+        return ConversationHistoryResponse(
+            conversation_id=conversation.id,
+            messages=messages,
+            total_messages=len(messages),
+        )
+
+    except HTTPException:
+        raise
+ 
+    except Exception as e:
+        logger.error(f"[CHAT_ENDPOINT] Error getting resource chat history: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve resource chat history",
+        )
+
+
+@router.get(
     "/resources/{resource_id}/chat/conversations",
     response_model=ConversationListResponse,
     summary="List resource conversations",
@@ -301,6 +356,7 @@ async def get_conversation_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve conversation history",
         )
+
 
 
 @router.post(
