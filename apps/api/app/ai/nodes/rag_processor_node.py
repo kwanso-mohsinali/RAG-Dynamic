@@ -4,6 +4,7 @@ RAG processor node - lightweight container for RAG query processing.
 This node delegates all RAG processing logic to the RAGChain.
 """
 
+from datetime import datetime
 from typing import Dict, Any
 from uuid import UUID
 from langchain_core.messages import HumanMessage, AIMessage
@@ -94,8 +95,13 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         answer = chain_result.get("answer", "")
         context = chain_result.get("context", "")
 
-        # Create AI response message
-        ai_message = {"role": "assistant", "content": answer}
+        # Create AI response message as serializable dictionary
+        ai_message_dict = {
+            "type": "ai",
+            "content": answer,
+            "additional_kwargs": {"timestamp": datetime.utcnow()},
+            "response_metadata": {}
+        }
 
         logger.info(
             f"[RAG_PROCESSOR_NODE] RAG processing completed successfully for resource {resource_id}"
@@ -108,7 +114,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
         # LangGraph will automatically append it to the conversation history
         return {
             # ← add_messages will append this automatically
-            "messages": [ai_message],
+            "messages": [ai_message_dict],
             "context": context,
             "answer": answer,
         }
@@ -292,8 +298,13 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         response = await llm.ainvoke(llm_messages)
         answer = response.content
         
-        # Create AI response message
-        ai_message = {"role": "assistant", "content": answer}
+        # Create AI response message as serializable dictionary
+        ai_message_dict = {
+            "type": "ai",
+            "content": answer,
+            "additional_kwargs": {"timestamp": datetime.utcnow()},
+            "response_metadata": {}
+        }
 
         logger.info(
             f"[RAG_PROCESSOR_NODE_STREAMING_ASYNC] RAG processing completed successfully for resource {resource_id}"
@@ -307,7 +318,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
         # LangGraph will automatically merge this with existing messages
         return {
             # This will be appended to existing messages
-            "messages": [ai_message],
+            "messages": [ai_message_dict],
             "context": context,
             "answer": answer,
         }

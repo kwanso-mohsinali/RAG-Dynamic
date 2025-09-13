@@ -5,6 +5,7 @@ This follows the established pattern where workflows are pure functions
 that define the graph structure and return compiled applications.
 """
 
+from datetime import datetime
 from typing import Dict, Any
 from uuid import UUID
 from langgraph.graph import StateGraph, START, END
@@ -14,6 +15,7 @@ from app.ai.schemas.workflow_states import RAGChatState
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 async def create_rag_chat_workflow(
     resource_id: UUID,
@@ -95,8 +97,14 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     if not resource_id:
         raise ValueError("Resource ID is required")
 
-    # Create human message for the current input
-    human_message = {"role": "user", "content": message}
+    # Create human message as a serializable dictionary
+    # This avoids JSON serialization issues with LangChain objects in the checkpointer
+    human_message_dict = {
+        "type": "human",
+        "content": message,
+        "additional_kwargs": {"timestamp": datetime.utcnow()},
+        "response_metadata": {},
+    }
 
     # Prepare state with current message
     # LangGraph's checkpointer will automatically:
@@ -105,16 +113,18 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     # 3. Pass the complete conversation history to the workflow
     state = {
         # This will be appended to existing messages
-        "messages": [human_message],
+        "messages": [human_message_dict],
         "resource_id": str(resource_id),
-        "context": "", # Initialize empty context 
+        "context": "",  # Initialize empty context
         "answer": "",  # Initialize empty answer
     }
 
     logger.info(
         f"[RAG_CHAT_WORKFLOW] Prepared input state with {len(state['messages'])} messages for thread_id: {thread_id}"
     )
-    logger.info(f"[RAG_CHAT_WORKFLOW] Human message content: {human_message['content'][:50]}...")
+    logger.info(
+        f"[RAG_CHAT_WORKFLOW] Human message content: {human_message_dict['content'][:50]}..."
+    )
 
     return state
 
