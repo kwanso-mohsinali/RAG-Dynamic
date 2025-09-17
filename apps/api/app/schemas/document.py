@@ -8,7 +8,6 @@ class IngestFileRequest(BaseModel):
         ..., description="ID of the resource to associate the file with"
     )
     file_key: str = Field(..., description="S3 file key for the uploaded file")
-    secret_key: str = Field(..., description="Secret key for authentication")
 
 
 class IngestFileResponse(BaseModel):
