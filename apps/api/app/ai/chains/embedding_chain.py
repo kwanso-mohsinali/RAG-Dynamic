@@ -77,8 +77,9 @@ class EmbeddingChain:
                 f"[EMBEDDING_CHAIN] Enhancing chunk metadata for file {file_path}"
             )
             original_filename = state.get("file_metadata", {}).get("file_name", "unknown")
+            file_key = state.get("file_key", "unknown")
             enhanced_chunks = self._enhance_chunk_metadata(
-                chunks, resource_id, original_filename
+                chunks, resource_id, original_filename, file_key
             )
 
             # Store documents in vector database using VectorService (with proper table tracking)
@@ -115,7 +116,7 @@ class EmbeddingChain:
                 f"[EMBEDDING_CHAIN] Analyzing embedding quality using EmbeddingAnalysisTool"
             )
             embedding_analysis = self.analysis_tool.analyze_embedding_quality(
-                sample_embeddings
+                sample_embeddings[0]
             )
 
             logger.info(
@@ -147,6 +148,7 @@ class EmbeddingChain:
         chunks: List[Document],
         resource_id: Optional[str] = None,
         original_filename: Optional[str] = None,
+        file_key: Optional[str] = None,
     ) -> List[Document]:
         """
         Enhance chunk metadata with project and attachment information.
@@ -176,6 +178,7 @@ class EmbeddingChain:
                 "source_file": original_filename
                 or "unknown",  # For backward compatibility
                 "chunk_id": f"{original_filename}_{chunk.metadata.get('chunk_index', 0)}",
+                "file_key": file_key or "unknown",
                 "embedding_timestamp": str(int(__import__("time").time())),
             }
 
