@@ -14,4 +14,5 @@ def get_chat_service(vector_service: VectorService = Depends(get_vector_service)
 
 
 # Type aliases for clean injection
+VectorServiceDep = Annotated[VectorService, Depends(get_vector_service)]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
