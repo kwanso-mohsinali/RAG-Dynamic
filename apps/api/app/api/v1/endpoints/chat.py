@@ -146,6 +146,7 @@ async def stream_chat_message(
                     resource_id=resource_id,
                     message=request.message,
                     thread_id=conversation.thread_id,
+                    resource_details=conversation.resource_details,
                 ):
                     chunk_count += 1
 

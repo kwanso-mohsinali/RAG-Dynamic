@@ -173,6 +173,7 @@ class RAGChain:
             # Extract input components
             user_input = input_data.get("input", "")
             chat_history = input_data.get("chat_history", [])
+            resource_details = input_data.get("resource_details", "")
 
             if not user_input or not user_input.strip():
                 raise ValueError("User input cannot be empty")
@@ -194,7 +195,7 @@ class RAGChain:
             # Create the system message with context using centralized prompt
             from langchain_core.messages import SystemMessage, HumanMessage
 
-            system_content = RAG_SYSTEM_PROMPT.format(context=context)
+            system_content = RAG_SYSTEM_PROMPT.format(context=context, resource_details=resource_details)
 
             # Create messages for the LLM
             messages = [SystemMessage(content=system_content)]
