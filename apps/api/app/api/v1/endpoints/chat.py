@@ -20,6 +20,8 @@ from app.schemas.chat import (
     ChatMessageRequest,
     ChatMessageResponse,
     ChatStreamChunk,
+    ConversationCreateRequest,
+    ConversationCreateResponse,
     ConversationHistoryResponse,
     ConversationListResponse,
     ConversationDeactivateResponse,
@@ -144,6 +146,7 @@ async def stream_chat_message(
                     resource_id=resource_id,
                     message=request.message,
                     thread_id=conversation.thread_id,
+                    resource_details=conversation.resource_details,
                 ):
                     chunk_count += 1
 
@@ -210,58 +213,75 @@ async def stream_chat_message(
         )
 
 
-@router.get(
-    "/resources/{resource_id}/chat/history",
-    response_model=ConversationHistoryResponse,
-    summary="Get conversation history for a resource",
-    description="Get conversation history for the current user in this resource.",
+@router.post(
+    "/conversations",
+    response_model=ConversationCreateResponse,
+    summary="Create a new conversation",
+    description="Create a new conversation for the current user in the resource.",
 )
-async def get_resource_chat_history(
-    resource_id: UUID,
-    chat_service: ChatServiceDep,
+async def create_conversation(
+    request: ConversationCreateRequest,
     user_id: UUID = Depends(get_current_user_id),
     conversation_service: ConversationService = Depends(get_conversation_service),
-) -> ConversationHistoryResponse:
+) -> ConversationCreateResponse:
     """
-    Get conversation history for the current user in this resource.
+    Create a new conversation for the current user in the resource.
     """
     try:
-        # First, get conversation metadata and verify access
+        # Create a new conversation for the current user in the resource
         conversation = conversation_service.get_or_create_conversation(
-            resource_id=resource_id, user_id=user_id
-        )
-        
-        # Then get the actual message history from the AI service
-        message_history = await chat_service.get_conversation_history(
-            resource_id=conversation.resource_id,
-            thread_id=conversation.thread_id,
+            resource_id=request.resource_id,
+            user_id=user_id,
+            resource_details=request.resource_details or None,
         )
 
-        # Convert to ConversationMessage format
-        messages = [
-            ConversationMessage(
-                role=msg.get("role", "unknown"),
-                content=msg.get("content", ""),
-                timestamp=msg.get("timestamp") or datetime.utcnow(),
-                metadata=None,
-            )
-            for msg in message_history  # message_history is already a list
-        ]
-
-        return ConversationHistoryResponse(
+        return ConversationCreateResponse(
             conversation_id=conversation.id,
-            messages=messages,
-            total_messages=len(messages),
+            thread_id=conversation.thread_id,
+            message="Conversation created successfully",
         )
 
     except HTTPException:
         raise
- 
+
     except Exception as e:
-        logger.error(f"[CHAT_ENDPOINT] Error getting resource chat history: {str(e)}")
+        logger.error(f"[CHAT_ENDPOINT] Error creating conversation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve resource chat history",
+            detail="Failed to create conversation",
+        )
+
+
+@router.get(
+    "/conversations",
+    response_model=ConversationListResponse,
+    summary="List all user conversations",
+    description="Get list of all conversations for the current user across all resources.",
+)
+async def list_all_conversations(
+    user_id: UUID = Depends(get_current_user_id),
+    conversation_service: ConversationService = Depends(get_conversation_service),
+) -> ConversationListResponse:
+    """
+    Get list of all conversations for the current user across all resources.
+    """
+    try:
+        conversations = conversation_service.get_user_conversations(user_id=user_id)
+
+        conversation_summaries = [
+            ConversationSummary.model_validate(conv) for conv in conversations
+        ]
+
+        return ConversationListResponse(
+            conversations=conversation_summaries,
+            total_count=len(conversation_summaries),
+        )
+
+    except Exception as e:
+        logger.error(f"[CHAT_ENDPOINT] Error listing all conversations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve conversations",
         )
 
 
@@ -358,7 +378,6 @@ async def get_conversation_history(
         )
 
 
-
 @router.post(
     "/conversations/{conversation_id}/deactivate",
     response_model=ConversationDeactivateResponse,
@@ -399,39 +418,6 @@ async def deactivate_conversation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to deactivate conversation",
-        )
-
-
-@router.get(
-    "/conversations",
-    response_model=ConversationListResponse,
-    summary="List all user conversations",
-    description="Get list of all conversations for the current user across all resources.",
-)
-async def list_all_conversations(
-    user_id: UUID = Depends(get_current_user_id),
-    conversation_service: ConversationService = Depends(get_conversation_service),
-) -> ConversationListResponse:
-    """
-    Get list of all conversations for the current user across all resources.
-    """
-    try:
-        conversations = conversation_service.get_user_conversations(user_id=user_id)
-
-        conversation_summaries = [
-            ConversationSummary.model_validate(conv) for conv in conversations
-        ]
-
-        return ConversationListResponse(
-            conversations=conversation_summaries,
-            total_count=len(conversation_summaries),
-        )
-
-    except Exception as e:
-        logger.error(f"[CHAT_ENDPOINT] Error listing all conversations: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve conversations",
         )
 
 

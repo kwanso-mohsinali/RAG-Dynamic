@@ -38,7 +38,8 @@ class ConversationService:
         self,
         resource_id: UUID,
         user_id: UUID ,
-        title: Optional[str] = None
+        title: Optional[str] = None,
+        resource_details: Optional[str] = None
     ) -> Conversation:
         """
         Get existing conversation or create a new one for the user and resource.
@@ -47,6 +48,7 @@ class ConversationService:
             resource_id: Resource UUID
             user_id: User UUID
             title: Optional conversation title
+            resource_details: Optional resource details
 
         Returns:
             Conversation object with thread_id
@@ -86,7 +88,8 @@ class ConversationService:
                 title=title or f"Chat - {resource_id}",
                 message_count=0,
                 last_message_at=datetime.utcnow(),
-                is_active=True
+                is_active=True,
+                resource_details=resource_details
             )
 
             self.db.add(conversation)

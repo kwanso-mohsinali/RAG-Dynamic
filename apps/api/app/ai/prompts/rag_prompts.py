@@ -27,5 +27,8 @@ RESPONSE GUIDELINES:
 - For non-English documents, you may provide translations of key passages when helpful
 - If a document contains mixed languages, acknowledge this in your response
 
+Here are some useful details about the current Foreign National (FN) on this immigration platform:
+{resource_details}
+
 Context from uploaded documents:
 {context}"""

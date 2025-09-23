@@ -245,7 +245,7 @@ class ChatService:
             raise RuntimeError(f"Failed to process message: {str(e)}")
 
     async def stream_message(
-        self, resource_id: UUID, message: str, thread_id: Optional[str] = None
+        self, resource_id: UUID, message: str, thread_id: Optional[str] = None, resource_details: Optional[str] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Stream a chat message response using hybrid approach.
@@ -259,6 +259,7 @@ class ChatService:
             resource_id: Resource UUID
             message: User message
             thread_id: Optional thread ID for conversation persistence
+            resource_details: Optional resource details for the conversation
 
         Yields:
             Streaming response chunks
@@ -323,7 +324,7 @@ class ChatService:
             rag_chain = RAGChain(resource_id, self.vector_service)
 
             # Prepare input for streaming
-            input_data = {"input": message, "chat_history": conversation_history}
+            input_data = {"input": message, "chat_history": conversation_history, "resource_details": resource_details}
 
             logger.info(
                 f"[CHAT_SERVICE] Starting RAG chain streaming for resource {resource_id}"

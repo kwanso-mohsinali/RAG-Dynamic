@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class RAGChain:
     """Complete RAG system implementation using LangChain, pgvector, and OpenAI."""
 
@@ -139,7 +140,7 @@ class RAGChain:
             chain_input = {
                 "context": context,
                 "chat_history": chat_history,
-                "input": user_input
+                "input": user_input,
             }
 
             # Generate response (pass callbacks for tracking)
@@ -172,6 +173,7 @@ class RAGChain:
             # Extract input components
             user_input = input_data.get("input", "")
             chat_history = input_data.get("chat_history", [])
+            resource_details = input_data.get("resource_details", "")
 
             if not user_input or not user_input.strip():
                 raise ValueError("User input cannot be empty")
@@ -190,15 +192,10 @@ class RAGChain:
             context = self._format_docs(relevant_docs)
 
             # Use the LLM's astream method directly for better streaming
-            # Create the system message with context
+            # Create the system message with context using centralized prompt
             from langchain_core.messages import SystemMessage, HumanMessage
 
-            system_content = f"""You are a helpful AI assistant. Answer questions based on the provided context.
-
-            Context:
-            {context}
-
-            Please provide a helpful and accurate response based on the context above."""
+            system_content = RAG_SYSTEM_PROMPT.format(context=context, resource_details=resource_details)
 
             # Create messages for the LLM
             messages = [SystemMessage(content=system_content)]
