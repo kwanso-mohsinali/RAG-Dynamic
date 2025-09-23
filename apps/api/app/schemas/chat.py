@@ -18,6 +18,11 @@ class ChatMessageRequest(BaseModel):
     conversation_id: Optional[UUID] = Field(
         None, description="Existing conversation ID (optional)")
 
+class ConversationCreateRequest(BaseModel):
+    """Request schema for creating a new conversation."""
+
+    resource_id: UUID = Field(..., description="Resource ID")
+    resource_details: Optional[str] = Field(None, description="Resource details related to the conversation")
 
 class ChatMessageResponse(BaseModel):
     """Response schema for chat message."""

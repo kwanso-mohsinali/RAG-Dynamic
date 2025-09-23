@@ -5,7 +5,7 @@ This model stores conversation metadata only. LangGraph's PostgreSQL checkpointe
 handles the actual message persistence automatically using thread_id.
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Boolean
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 
@@ -41,6 +41,9 @@ class Conversation(BaseModel):
 
     # Status management
     is_active = Column(Boolean, default=True)  # For archiving conversations
+    
+    # Details of the resource
+    resource_details = Column(Text, nullable=True)
 
     def __repr__(self):
         return f"<Conversation(id={self.id}, thread_id='{self.thread_id}', resource_id={self.resource_id})>"
