@@ -13,6 +13,8 @@ from app.ai.chains.rag_chain import RAGChain
 from app.ai.services.vector_service import VectorService
 import logging
 
+from apps.api.app.ai.prompts.rag_prompts import RAG_SYSTEM_PROMPT
+
 logger = logging.getLogger(__name__)
 
 def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
@@ -88,7 +90,7 @@ def rag_processor_node(state: RAGChatState) -> Dict[str, Any]:
 
         # Use invoke method for consistent processing
         chain_result = rag_chain.invoke(
-            {"input": user_input, "chat_history": chat_history}
+            {"input": user_input, "chat_history": chat_history, "resource_details": state.resource_details}
         )
 
         # Extract results
@@ -270,13 +272,7 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
 
         # Create system message with context
         from langchain_core.messages import SystemMessage
-
-        system_content = f"""You are a helpful AI assistant. Answer questions based on the provided context.
-
-        Context:
-        {context}
-
-        Please provide a helpful and accurate response based on the context above."""
+        system_content = RAG_SYSTEM_PROMPT.format(context=context, resource_details=state.resource_details)
 
         # Create messages for the LLM
         llm_messages = [SystemMessage(content=system_content)]

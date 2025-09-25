@@ -245,7 +245,11 @@ class ChatService:
             raise RuntimeError(f"Failed to process message: {str(e)}")
 
     async def stream_message(
-        self, resource_id: UUID, message: str, thread_id: Optional[str] = None, resource_details: Optional[str] = None
+        self,
+        resource_id: UUID,
+        message: str,
+        thread_id: Optional[str] = None,
+        resource_details: Optional[str] = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Stream a chat message response using hybrid approach.
@@ -283,6 +287,7 @@ class ChatService:
             workflow_input = {
                 "message": message,
                 "resource_id": str(resource_id),
+                "resource_details": str(resource_details),
                 "thread_id": thread_id or "default",
             }
 
@@ -304,6 +309,7 @@ class ChatService:
             try:
                 # Get current state to extract conversation history
                 current_state = await workflow.aget_state(config)
+
                 if (
                     current_state
                     and hasattr(current_state, "values")
@@ -323,8 +329,30 @@ class ChatService:
 
             rag_chain = RAGChain(resource_id, self.vector_service)
 
+            # Serialize chat history to avoid JSON serialization issues
+            # Convert LangChain message objects to simple dictionaries
+            serialized_history = []
+            for msg in conversation_history:
+                if hasattr(msg, "content"):
+                    # Determine message type
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    if isinstance(msg, HumanMessage):
+                        serialized_history.append(HumanMessage(content=msg.content))
+                    elif isinstance(msg, AIMessage):
+                        serialized_history.append(AIMessage(content=msg.content))
+                    else:
+                        # For other message types, create a generic message
+                        serialized_history.append(
+                            HumanMessage(content=str(msg.content))
+                        )
+
             # Prepare input for streaming
-            input_data = {"input": message, "chat_history": conversation_history, "resource_details": resource_details}
+            input_data = {
+                "input": message,
+                "chat_history": serialized_history,
+                "resource_details": resource_details,
+            }
 
             logger.info(
                 f"[CHAT_SERVICE] Starting RAG chain streaming for resource {resource_id}"
@@ -418,8 +446,6 @@ class ChatService:
                 "thread_id": thread_id or "default",
                 "is_final": True,
             }
-
-            logger.info(f"[CHAT_SERVICE] Yielding final chunk...")
             yield final_chunk
 
         except Exception as e:
@@ -490,7 +516,9 @@ class ChatService:
                             {
                                 "role": role,
                                 "content": content,
-                                "timestamp": getattr(message, "additional_kwargs", {}).get("timestamp", None),
+                                "timestamp": getattr(
+                                    message, "additional_kwargs", {}
+                                ).get("timestamp", None),
                             }
                         )
                     return history
@@ -526,7 +554,9 @@ class ChatService:
                             {
                                 "role": role,
                                 "content": content,
-                                "timestamp": getattr(message, "additional_kwargs", {}).get("timestamp", None),
+                                "timestamp": getattr(
+                                    message, "additional_kwargs", {}
+                                ).get("timestamp", None),
                             }
                         )
                     return history

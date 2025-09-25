@@ -90,6 +90,7 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     message = input_data.get("message", "")
     resource_id = input_data.get("resource_id")
     thread_id = input_data.get("thread_id", "default")
+    resource_details = input_data.get("resource_details", "")
 
     if not message:
         raise ValueError("Message is required")
@@ -115,6 +116,7 @@ def validate_rag_chat_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         # This will be appended to existing messages
         "messages": [human_message_dict],
         "resource_id": str(resource_id),
+        "resource_details": str(resource_details),
         "context": "",  # Initialize empty context
         "answer": "",  # Initialize empty answer
     }
