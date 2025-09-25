@@ -18,7 +18,8 @@ class RAGChatState(BaseModel):
         default_factory=list
     )
     resource_id: str = Field(..., description="ID of the resource being queried")
-    context: str
+    context: str = Field(..., description="Context of the RAG chat")
+    resource_details: Optional[str] = Field(None, description="Details of the resource being queried")
     answer: Optional[str] = Field(default=None, description="Generated answer from RAG")
     error_message: Optional[str] = Field(
         default=None, description="Error message if processing fails"

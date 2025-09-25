@@ -65,6 +65,7 @@ class RAGChain:
                     "context": lambda x: x["context"],
                     "chat_history": lambda x: x.get("chat_history", []),
                     "input": lambda x: x["input"],
+                    "resource_details": lambda x: x["resource_details"],
                 }
             )
             | rag_prompt
@@ -129,6 +130,7 @@ class RAGChain:
             # Extract input components
             user_input = input_data.get("input", "")
             chat_history = input_data.get("chat_history", [])
+            resource_details = input_data.get("resource_details", "")
 
             # Retrieve relevant documents
             relevant_docs = self.retriever.invoke(user_input)
@@ -141,6 +143,7 @@ class RAGChain:
                 "context": context,
                 "chat_history": chat_history,
                 "input": user_input,
+                "resource_details": resource_details,
             }
 
             # Generate response (pass callbacks for tracking)
