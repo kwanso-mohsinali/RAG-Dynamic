@@ -50,6 +50,99 @@ class CheckpointerService:
 
         logger.info("[CHECKPOINTER_SERVICE] Initialized singleton CheckpointerService")
 
+    async def _check_checkpointer_tables_exist(self) -> bool:
+        """
+        Check if LangGraph checkpointer tables already exist in the database.
+
+        This prevents hanging setup() calls on Heroku by checking if tables
+        were created in previous runs.
+
+        Returns:
+            bool: True if all required tables exist, False otherwise
+        """
+        try:
+            # Get shared async pool
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Getting shared async pool for table check...")
+            shared_pool = await get_shared_async_pool()
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Got shared async pool, checking tables...")
+
+            # Check if all required tables exist
+            async with shared_pool.connection() as conn:
+                logger.info(
+                    "[CHECKPOINTER_SERVICE] Database connection established")
+
+                async with conn.cursor() as cursor:
+                    logger.info(
+                        "[CHECKPOINTER_SERVICE] Cursor created, checking tables...")
+
+                    # Check for all four required tables
+                    tables_to_check = [
+                        'checkpoints',
+                        'checkpoint_blobs',
+                        'checkpoint_migrations',
+                        'checkpoint_writes'
+                    ]
+
+                    for table_name in tables_to_check:
+                        logger.info(
+                            f"[CHECKPOINTER_SERVICE] Checking table: {table_name}")
+
+                        try:
+                            await cursor.execute("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_schema = 'public' 
+                                    AND table_name = %s
+                                )
+                            """, (table_name,))
+
+                            exists = await cursor.fetchone()
+                            logger.info(
+                                f"[CHECKPOINTER_SERVICE] Table '{table_name}' exists: {exists}")
+
+                            # Handle both dict and tuple return types from different psycopg versions
+                            if isinstance(exists, dict):
+                                # psycopg3 with dict_row factory
+                                exists_value = exists.get('exists', False)
+                            else:
+                                # psycopg2 or other drivers return tuples
+                                exists_value = exists[0] if exists else False
+
+                            logger.info(
+                                f"[CHECKPOINTER_SERVICE] Table '{table_name}' exists value: {exists_value}")
+
+                            if not exists_value:
+                                logger.info(
+                                    f"[CHECKPOINTER_SERVICE] Table '{table_name}' does not exist")
+                                return False
+
+                        except Exception as table_check_error:
+                            logger.error(
+                                f"[CHECKPOINTER_SERVICE] Error checking table '{table_name}': {str(table_check_error)}")
+                            return False
+
+                    logger.info(
+                        "[CHECKPOINTER_SERVICE] All checkpointer tables already exist")
+                    return True
+
+        except Exception as e:
+            logger.error(
+                f"[CHECKPOINTER_SERVICE] Error checking table existence: {str(e)}")
+            logger.error(f"[CHECKPOINTER_SERVICE] Error type: {type(e)}")
+            import traceback
+            logger.error(
+                f"[CHECKPOINTER_SERVICE] Traceback: {traceback.format_exc()}")
+            
+             # CRITICAL: Reset pool on timeout to prevent deadlock
+            if "couldn't get a connection" in str(e).lower():
+                logger.warning("[CHECKPOINTER_SERVICE] Pool timeout detected, resetting pool...")
+                from app.ai.services.shared_pool_service import reset_shared_pool
+                reset_shared_pool()
+            # If we can't check, assume tables don't exist and proceed with setup
+            return False
+
     async def create_checkpointer(
         self, async_mode: bool = False
     ) -> Union["PostgresSaver", "AsyncPostgresSaver", "MemorySaver"]:
@@ -94,27 +187,38 @@ class CheckpointerService:
         try:
             # Check if PostgreSQL is available
             if not settings.DATABASE_URL:
-                logger.info(
-                    "[CHECKPOINTER_SERVICE] DATABASE_URL not configured, using memory checkpointer"
-                )
+                logger.warning(
+                    "[CHECKPOINTER_SERVICE] DATABASE_URL not configured, using memory checkpointer")
                 return None
 
-            logger.info("[CHECKPOINTER_SERVICE] Creating async PostgreSQL checkpointer")
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Creating async PostgreSQL checkpointer")
 
             # Import async version
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
             # Use shared pool instead of creating new one
-            logger.info("[CHECKPOINTER_SERVICE] Getting shared async pool...")
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Getting shared async pool...")
             shared_pool = await get_shared_async_pool()
             logger.info(
-                "[CHECKPOINTER_SERVICE] Got shared async pool, creating AsyncPostgresSaver..."
-            )
+                "[CHECKPOINTER_SERVICE] Got shared async pool, creating AsyncPostgresSaver...")
             checkpointer = AsyncPostgresSaver(shared_pool)
 
             logger.info(
-                "[CHECKPOINTER_SERVICE] AsyncPostgresSaver created successfully with shared pool"
-            )
+                "[CHECKPOINTER_SERVICE] AsyncPostgresSaver created successfully with shared pool")
+
+            # Check if tables already exist before calling setup()
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Checking if checkpointer tables already exist...")
+
+            if await self._check_checkpointer_tables_exist():
+                logger.info(
+                    "[CHECKPOINTER_SERVICE] Tables already exist, skipping setup() call")
+            else:
+                logger.info(
+                    "[CHECKPOINTER_SERVICE] Tables don't exist, calling setup() to create them...")
+
 
             # Setup the checkpointer (create tables) - REQUIRED by LangGraph
             try:
@@ -167,7 +271,7 @@ class CheckpointerService:
         try:
             # Check if we have a valid database URL
             if not settings.DATABASE_URL:
-                logger.info(
+                logger.warning(
                     "[CHECKPOINTER_SERVICE] DATABASE_URL not configured, using memory checkpointer"
                 )
                 return None
@@ -259,47 +363,6 @@ class CheckpointerService:
             )
             raise RuntimeError(f"Cannot create any checkpointer: {str(e)}")
 
-    async def delete_postgres_checkpointer(self, thread_id: str) -> None:
-        """
-        Delete all LangGraph checkpoint rows for a given thread_id.
-
-        This clears persisted conversation history for that thread.
-
-        Returns True on success, False if PostgreSQL is not configured or an error occurs.
-        """
-        try:
-            if not settings.DATABASE_URL:
-                # MemorySaver has no persistent store to clear
-                logger.info(
-                    "[CHECKPOINTER_SERVICE] DATABASE_URL not configured. Nothing to clear."
-                )
-                return None
-
-            pool = await get_shared_async_pool()
-            async with pool.connection() as conn:
-                async with conn.cursor() as cur:
-                    # Match LangGraph postgres schema table names
-                    await cur.execute(
-                        'DELETE FROM "checkpoint_writes" WHERE "thread_id" = %s',
-                        (thread_id,),
-                    )
-                    await cur.execute(
-                        'DELETE FROM "checkpoint_blobs" WHERE "thread_id" = %s',
-                        (thread_id,),
-                    )
-                    await cur.execute(
-                        'DELETE FROM "checkpoints" WHERE "thread_id" = %s',
-                        (thread_id,),
-                    )
-
-            logger.info(
-                f"[CHECKPOINTER_SERVICE] Deleted checkpoints for thread_id: {thread_id}"
-            )
-        except Exception as e:
-            logger.error(
-                f"[CHECKPOINTER_SERVICE] Failed to delete checkpoints for thread_id {thread_id}: {str(e)}"
-            )
-
     def is_postgres_available(self) -> Optional[bool]:
         """
         Check if PostgreSQL checkpointer is available.
@@ -326,3 +389,145 @@ class CheckpointerService:
             return "Memory"
         else:
             return "Unknown"
+
+    async def debug_checkpointer_tables(self) -> dict:
+        """
+        Debug method to check the status of all checkpointer tables.
+
+        Returns:
+            dict: Status of each table and overall status
+        """
+        try:
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Debug: Getting shared async pool...")
+            shared_pool = await get_shared_async_pool()
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Debug: Got shared pool, testing connection...")
+
+            # Test basic connection first
+            try:
+                async with shared_pool.connection() as conn:
+                    logger.info(
+                        "[CHECKPOINTER_SERVICE] Debug: Connection established successfully")
+
+                    # Test a simple query
+                    async with conn.cursor() as cursor:
+                        await cursor.execute("SELECT 1")
+                        result = await cursor.fetchone()
+                        logger.info(
+                            f"[CHECKPOINTER_SERVICE] Debug: Simple query result: {result}")
+
+                        if result and result[0] == 1:
+                            logger.info(
+                                "[CHECKPOINTER_SERVICE] Debug: Basic database connectivity confirmed")
+                        else:
+                            logger.error(
+                                "[CHECKPOINTER_SERVICE] Debug: Basic query failed")
+                            return {"error": "Basic query failed", "status": "error"}
+
+                    # Now check tables
+                    async with conn.cursor() as cursor:
+                        tables_to_check = [
+                            'checkpoints',
+                            'checkpoint_blobs',
+                            'checkpoint_migrations',
+                            'checkpoint_writes'
+                        ]
+
+                        table_status = {}
+                        all_exist = True
+
+                        for table_name in tables_to_check:
+                            logger.info(
+                                f"[CHECKPOINTER_SERVICE] Debug: Checking table {table_name}")
+
+                            try:
+                                await cursor.execute("""
+                                    SELECT EXISTS (
+                                        SELECT FROM information_schema.tables 
+                                        WHERE table_schema = 'public' 
+                                        AND table_name = %s
+                                    )
+                                """, (table_name,))
+
+                                exists = await cursor.fetchone()
+
+                                # Handle both dict and tuple return types
+                                if isinstance(exists, dict):
+                                    exists_value = exists.get('exists', False)
+                                else:
+                                    exists_value = exists[0] if exists else False
+
+                                table_status[table_name] = exists_value
+                                logger.info(
+                                    f"[CHECKPOINTER_SERVICE] Debug: Table {table_name} exists: {table_status[table_name]}")
+
+                                if not exists_value:
+                                    all_exist = False
+
+                            except Exception as table_error:
+                                logger.error(
+                                    f"[CHECKPOINTER_SERVICE] Debug: Error checking table {table_name}: {str(table_error)}")
+                                table_status[table_name] = False
+                                all_exist = False
+
+                        return {
+                            "tables": table_status,
+                            "all_tables_exist": all_exist,
+                            "status": "ready" if all_exist else "missing_tables",
+                            "connection": "working"
+                        }
+
+            except Exception as conn_error:
+                logger.error(
+                    f"[CHECKPOINTER_SERVICE] Debug: Connection error: {str(conn_error)}")
+                return {"error": f"Connection failed: {str(conn_error)}", "status": "error"}
+
+        except Exception as e:
+            logger.error(
+                f"[CHECKPOINTER_SERVICE] Debug: General error: {str(e)}")
+            return {
+                "error": str(e),
+                "status": "error"
+            }
+
+    async def test_database_connection(self) -> dict:
+        """
+        Simple method to test basic database connectivity.
+
+        Returns:
+            dict: Connection test results
+        """
+        try:
+            logger.info(
+                "[CHECKPOINTER_SERVICE] Testing basic database connection...")
+
+            # Get shared pool
+            shared_pool = await get_shared_async_pool()
+            logger.info("[CHECKPOINTER_SERVICE] Got shared pool")
+
+            # Test connection
+            async with shared_pool.connection() as conn:
+                logger.info("[CHECKPOINTER_SERVICE] Connection established")
+
+                # Test simple query
+                async with conn.cursor() as cursor:
+                    await cursor.execute("SELECT version()")
+                    version = await cursor.fetchone()
+                    logger.info(
+                        f"[CHECKPOINTER_SERVICE] PostgreSQL version: {version}")
+
+                    return {
+                        "status": "connected",
+                        "version": str(version[0]) if version else "unknown",
+                        "message": "Database connection successful"
+                    }
+
+        except Exception as e:
+            logger.error(
+                f"[CHECKPOINTER_SERVICE] Connection test failed: {str(e)}")
+            return {
+                "status": "failed",
+                "error": str(e),
+                "message": "Database connection failed"
+            }
