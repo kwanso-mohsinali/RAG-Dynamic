@@ -272,7 +272,14 @@ async def rag_processor_node_streaming_async(state: RAGChatState) -> Dict[str, A
 
         # Create system message with context
         from langchain_core.messages import SystemMessage
-        system_content = RAG_SYSTEM_PROMPT.format(context=context, resource_details=state.resource_details)
+        from langchain_core.prompts import PromptTemplate
+
+        template = PromptTemplate(
+            template=RAG_SYSTEM_PROMPT,
+            input_variables=['context', 'resource_details'],
+        )
+        
+        system_content = template.format(context=context, resource_details=state.resource_details)
 
         # Create messages for the LLM
         llm_messages = [SystemMessage(content=system_content)]
