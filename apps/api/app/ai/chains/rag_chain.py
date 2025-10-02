@@ -4,7 +4,6 @@ from langchain_core.documents import Document
 from langchain_core.runnables import RunnableParallel
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.ai.services.vector_service import VectorService
 from app.core.config import settings
