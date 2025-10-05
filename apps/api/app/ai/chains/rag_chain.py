@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 from uuid import UUID
 from langchain_core.documents import Document
-from langchain_core.runnables import RunnableParallel
+from langchain.schema.runnable import RunnableLambda, RunnableParallel
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -58,18 +58,23 @@ class RAGChain:
             ]
         )
 
+        context_chain = RunnableLambda(lambda x: x["input"]) | self.retriever | RunnableLambda(self._format_docs)
+
         rag_chain = (
             RunnableParallel(
                 {
-                    "context": lambda x: x["context"],
+                    "context": context_chain,
                     "chat_history": lambda x: x.get("chat_history", []),
                     "input": lambda x: x["input"],
                     "resource_details": lambda x: x["resource_details"],
                 }
+            ) 
+            | RunnableParallel(
+                {
+                    "context": RunnableLambda(lambda x: x["context"]),
+                    "response":  rag_prompt | self.llm | StrOutputParser(),
+                }
             )
-            | rag_prompt
-            | self.llm
-            | StrOutputParser()
         )
 
         return rag_chain
@@ -131,27 +136,22 @@ class RAGChain:
             chat_history = input_data.get("chat_history", [])
             resource_details = input_data.get("resource_details", "")
 
-            # Retrieve relevant documents
-            relevant_docs = self.retriever.invoke(user_input)
-
-            # Format context
-            context = self._format_docs(relevant_docs)
-
             # Prepare chain input
             chain_input = {
-                "context": context,
-                "chat_history": chat_history,
                 "input": user_input,
+                "chat_history": chat_history,
                 "resource_details": resource_details,
             }
 
             # Generate response (pass callbacks for tracking)
             config = {"callbacks": callbacks} if callbacks else None
-            answer = self.chain.invoke(chain_input, config=config)
+            chain_result = self.chain.invoke(chain_input, config=config)
+
+            logger.info(f"[RAG_CHAIN] Chain result >>>>>>>>>>: {chain_result}")
 
             return {
-                "answer": answer,
-                "context": context,
+                "answer": chain_result.get("response", ""),
+                "context": chain_result.get("context", ""),
             }
         except Exception as e:
             logger.error(f"[RAG_CHAIN] Error processing query: {str(e)}")
