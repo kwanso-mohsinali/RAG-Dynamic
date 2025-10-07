@@ -141,4 +141,8 @@ def prepare_rag_chat_config(thread_id: str) -> Dict[str, Any]:
     Returns:
         Configuration dict for workflow execution
     """
-    return {"configurable": {"thread_id": thread_id}}
+    return {
+        "configurable": {"thread_id": thread_id},
+        "metadata": {"thread_id": thread_id},     # Used for making thread id in langsmith
+        "run_name": "rag_chat_workflow",          # specify trace name in langsmith
+    }
