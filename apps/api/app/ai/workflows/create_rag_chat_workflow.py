@@ -143,6 +143,6 @@ def prepare_rag_chat_config(thread_id: str) -> Dict[str, Any]:
     """
     return {
         "configurable": {"thread_id": thread_id},
-        "metadata": {"thread_id": thread_id},     # Used for making thread id in langsmith
+        "metadata": {"thread_id": thread_id},     # specifying thread_id in metadata will group all the related traces under a single thread in langsmith
         "run_name": "rag_chat_workflow",          # specify trace name in langsmith
     }
